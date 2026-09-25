@@ -1,5 +1,11 @@
 # Arc Guard — design system (locked 2026-09-25)
 
+
+> **Update (Jay, 25 Sep, final):** only TWO colours on the whole site: blue `#0000FF` (primary) and white `#FFFFFF` (secondary). Lighter tones are opacity versions of blue only. There is no red, grey or green; urgency and errors are shown by form (a filled blue banner, weight, icons), not by colour.
+>
+> **Much less text:** one headline and at most one line per screen. Explanations sit behind "?" or "Details".
+>
+> **No typing or typewriter animations** anywhere.
 **Chosen direction:** C, "The Custodian" (`design/prototypes/C-custodian.html`). It is the reference for every screen, state, string and motion. Jay chose it over A (the Big Door) because A was confusing.
 
 - **Look:** a bank-green enamel cabinet on an ivory worktop, lamp light from the upper left, a brass number plate, and two labelled key sockets (WALLET, KEY CARD). The Locker is a steel drawer and Savings is a glass jar.

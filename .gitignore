@@ -1,5 +1,11 @@
+!.env.example
+.env
+.env*
+.next/
+.vercel
+broadcast/*/31337/
+cache/
+design/prototypes/shots/
 node_modules/
 out/
-cache/
-.env
-broadcast/*/31337/
+web/node_modules/
