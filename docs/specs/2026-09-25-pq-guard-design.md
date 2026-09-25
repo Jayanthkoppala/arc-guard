@@ -18,8 +18,8 @@ Goal: an Arc Microgrants submission in the first review batch. The reviewer open
 - **State per owner:** `pqKey` (32 bytes), `nonce`, `locker` (USDC, 6 decimals), `shares` (vault shares), and `escape {to, readyAt}`.
 - **Functions:**
   - `open(pqKey)`: opens your box.
-  - `depositLocker(amount)` and `depositSavings(amount)`: pull USDC through the ERC-20 at `0x3600…` after `approve`. Savings deposits call `vault.deposit` on Galaxy `0x8e35…12af`, which is ERC-4626 with USDC as its asset (checked on mainnet).
-  - `moveToSavings(amount)` and `moveToLocker(shares)`: owner only. The money stays inside the box, so no PQ signature is needed.
+  - `deposit(amount)`: pulls USDC into the **Locker** through the ERC-20 at `0x3600…` after `approve`. Every deposit lands in the Locker first.
+  - `moveToSavings(amount)` and `moveToLocker(shares)`: owner only. The money stays inside the box, so no PQ signature is needed. `moveToSavings` calls `vault.deposit` on Galaxy `0x8e35…12af`, which is ERC-4626 with USDC as its asset (checked on mainnet).
   - `withdraw(to, lockerAmount, shares, deadline, pqSig)`: requires `msg.sender == owner` **and** the precompile to verify `pqSig` over `keccak256(chainid, this, owner, nonce, "withdraw", to, lockerAmount, shares, deadline)`. Then `nonce++`. The recipient is checked against the blocklist before the expensive check runs.
   - `rotateKey(newKey, deadline, pqSig)`: signed by the old PQ key.
   - `requestEscape(to)`: owner only. Starts a 7-day timer.
@@ -28,6 +28,9 @@ Goal: an Arc Microgrants submission in the first review batch. The reviewer open
 - **Events:** `Opened`, `Deposited`, `Moved`, `PQVerified`, `Withdrawn`, `KeyRotated`, `EscapeRequested`, `EscapeCancelled`, `EscapeExecuted`. The passbook is built from these.
 - **Tests (arc-foundry):** good and bad signature, replay (nonce), wrong owner, expired deadline, deposit and withdraw from Savings, rotate key, and escape, cancel and execute. PQ fixtures come from `@noble/post-quantum`.
 - **Cost:** about 440k gas (~0.009 USDC) per two-key action.
+
+## Deposit, then choose (decided 25 Sep)
+Every deposit lands in the Locker, so the user sees "your money is safe" first. Then the app asks: **"Keep it in the Locker, or let it earn in Savings?"** It shows the live APY and a one-line risk note. Choosing Savings is one more wallet transaction (`moveToSavings`, wallet only). Choosing Locker ends the flow.
 
 ## Design: an old-world bank, 1950s
 Global references: a round steel vault door, walls of numbered safe deposit boxes, brass, a warm lamp glow, a typewriter passbook, rubber stamps, a coin jar. Palette: deep bank green, brass, ivory paper. Fonts: a serif for headings and a typewriter face for numbers. Sounds (Web Audio): a heavy door, a key turn and *clunk*, a stamp thud, a coin clink. Motion is weighty and slow, never bouncy. It respects reduced-motion settings and works on phones.
