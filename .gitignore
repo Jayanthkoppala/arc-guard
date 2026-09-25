@@ -9,3 +9,5 @@ design/prototypes/shots/
 node_modules/
 out/
 web/node_modules/
+demo/raw/
+demo/frames/
