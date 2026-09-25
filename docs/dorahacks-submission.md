@@ -9,13 +9,14 @@ The form is "Create a new BUIDL and submit". It has five steps: **Profile → De
 | BUIDL logo * (JPEG/PNG, < 2 MB, 480×480) | `demo/logo-480.png`: white keyhole disc on blue |
 | Vision * ("Describe the problem which this project solves") | Keep your USDC behind two keys: your wallet plus a post-quantum key card that Arc verifies on-chain, so a stolen (or one day quantum-broken) wallet key alone can't move your money. |
 | Category * | **Crypto / Web3** |
-| Sub-categories (optional) | Payments · Custody / Wallets · Security · Post-quantum |
-| L1s (optional) | Arc |
-| Other ecosystems (optional) | Circle · Morpho |
+| Key innovation domains (optional) | Payments · Wallet · Security · DeFi · Account Abstraction |
+| Layer-1s (optional) | Arc |
+| Layer-2s / Appchains (optional) | — (not applicable) |
+| Other ecosystems (optional) | Circle · Morpho · MetaMask |
 | GitHub * | https://github.com/Jayanthkoppala/arc-guard |
 | Project website | https://arc-guard-eosin.vercel.app |
 | Demo video | https://arc-guard-eosin.vercel.app/demo.mp4 (70 s, voiceover). A YouTube link would embed; upload it to your channel if you want the embed. |
-| Social links * (at least 1) | https://x.com/JayBosshq · https://github.com/Jayanthkoppala |
+| Social links * (up to 3) | https://x.com/JayBosshq · https://github.com/Jayanthkoppala · https://www.linkedin.com/in/jayanth-koppala-71a8091b9 |
 
 ## 2. Details (markdown)
 ```markdown
