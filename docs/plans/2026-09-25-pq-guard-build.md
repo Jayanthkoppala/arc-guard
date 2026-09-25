@@ -1,4 +1,4 @@
-# PQ Guard Build Plan
+# Arc Guard Build Plan
 
 **Goal:** a two-key (wallet + post-quantum) USDC safe deposit box on Arc mainnet, with a Locker and a Savings compartment and an old-world-bank interface, submitted to Arc Microgrants in the first review batch.
 

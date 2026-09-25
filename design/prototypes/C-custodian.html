@@ -1,0 +1,1533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arc Guard: a safe deposit box for your digital dollars</title>
+<meta name="description" content="Keep USDC on Arc behind two keys: your wallet, and a key card built to resist quantum computers. Locker or Savings. Open source.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Arc Guard · Concept C "The Custodian" · clickable prototype. Chain + wallet calls are simulated. */
+:root{
+  --ivory:#F1EDE2;--ivory-2:#E9E4D6;--paper:#FBF8F1;--rule:#DDD5C1;
+  --ink:#202B28;--ink-2:#4B5753;
+  --green:#24483F;--green-dd:#12261F;
+  --steel-l:#DCE3DF;
+  --brass:#9A773F;--brass-d:#6E5424;
+  --red:#923D32;--red-d:#6F2B23;--ok:#2E6B3A;--amber:#8A5A12;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --ease-fall:cubic-bezier(.5,0,1,.6);
+  --dur-base:280ms;--dur-door:480ms;--dur-turn:320ms;--dur-bolt:160ms;--dur-settle:240ms;--dur-ink:120ms;--dur-drawer:900ms;
+  --bannerH:0px;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .25 0 0 0 0 .14 .55 0 0 0 -.18'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --brush:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='200'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.003 .95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 .5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
+  --ink-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 8 0 0 0 -2.4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;background:var(--ivory);color:var(--ink);font:400 16px/24px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;background:radial-gradient(ellipse 60% 50% at 6% -6%,rgb(255 255 255 / .85),transparent 62%),radial-gradient(ellipse 70% 60% at 104% 108%,rgb(110 90 50 / .14),transparent 62%)}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--grain);background-size:220px;opacity:.26}
+h1,h2,h3,h4{margin:0;font-family:Newsreader,Georgia,serif;font-weight:500;letter-spacing:-.005em}
+h1{font-size:40px;line-height:44px}
+h2{font-size:26px;line-height:32px}
+h3{font-size:20px;line-height:26px}
+h4{font-size:18px;line-height:24px}
+p{margin:0}
+ul,ol{margin:0;padding:0}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-2)}
+.sm{font-size:14px;line-height:20px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+button{font:inherit;color:inherit}
+a{color:var(--green)}
+:focus-visible{outline:3px solid var(--ink);outline-offset:3px;border-radius:4px}
+.btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 18px;border-radius:10px;border:1px solid var(--ink);background:var(--paper);color:var(--ink);font:500 16px/1.2 "IBM Plex Sans";text-decoration:none;text-align:center;cursor:pointer;box-shadow:inset 0 1px 0 #fff,0 2px 0 rgb(32 43 40 / .28);transition:transform 80ms var(--ease),box-shadow 80ms var(--ease)}
+.btn:active:not([disabled]){transform:translateY(2px);box-shadow:inset 0 1px 0 #fff,0 0 0 transparent}
+.btn.primary{background:linear-gradient(180deg,#2E594D,#24483F);color:#F6F2E8;border-color:#16302A;box-shadow:inset 0 1px 0 rgb(255 255 255 / .2),0 2px 0 var(--green-dd),0 8px 16px -10px rgb(18 38 31 / .7)}
+.btn.primary:hover:not([disabled]){background:linear-gradient(180deg,#33634F,#285045)}
+.btn.danger{background:linear-gradient(180deg,#A3493C,#923D32);color:#FBF8F1;border-color:var(--red-d);box-shadow:inset 0 1px 0 rgb(255 255 255 / .2),0 2px 0 var(--red-d)}
+.btn.onred{background:#FBF8F1;color:var(--red-d);border-color:#FBF8F1;box-shadow:0 2px 0 rgb(0 0 0 / .25)}
+.btn.big{min-height:56px;font-size:17px}
+.btn[disabled]{opacity:.42;cursor:not-allowed}
+.link{background:none;border:0;padding:0;color:var(--green);font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+/* chrome */
+.proto{display:flex;justify-content:center;align-items:center;gap:10px;padding:5px 12px;background:var(--ink);color:var(--ivory);font:500 12px/16px "IBM Plex Sans";letter-spacing:.06em}
+.proto button{background:none;border:1px solid rgb(241 237 226 / .5);border-radius:4px;padding:2px 8px;color:inherit;font:inherit;cursor:pointer}
+.bar{max-width:1200px;margin:0 auto;height:64px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+.wm{font:500 23px/1 Newsreader,Georgia,serif}
+.wm-sub{font:500 11px/1 "IBM Plex Sans";letter-spacing:.22em;color:var(--ink-2)}
+.bar-r{display:flex;gap:8px;align-items:center}
+.chip{display:inline-flex;align-items:center;height:36px;padding:0 12px;border:1px solid var(--rule);border-radius:18px;background:rgb(251 248 241 / .75);font:500 14px/1 "IBM Plex Sans";white-space:nowrap}
+.chip.mono{font-family:"IBM Plex Mono"}
+button.chip{cursor:pointer;min-height:40px}
+.banner{position:sticky;top:0;z-index:35;background:var(--ivory-2);border-block:1px solid var(--rule)}
+.banner.red{background:var(--red);color:#FBF8F1;border-color:var(--red-d);box-shadow:0 6px 16px -8px rgb(111 43 35 / .6)}
+.banner-in{max-width:1200px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;gap:16px}
+.banner-in p{flex:1}
+.tag{display:inline-block;flex:none;padding:5px 10px 5px 20px;background:#FBF8F1;color:var(--red-d);font:600 13px/1 "IBM Plex Sans";letter-spacing:.12em;clip-path:polygon(10px 0,100% 0,100% 100%,10px 100%,0 50%)}
+/* stage */
+.stage{max-width:1200px;margin:0 auto;padding:20px 24px 48px;display:grid;grid-template-columns:minmax(0,1fr) 480px;gap:48px;align-items:start}
+.left,.right{min-width:0}
+.right{position:relative}
+#rightContent.enter>*{animation:rise var(--dur-base) var(--ease) both}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}}
+
+/* ===== the cabinet: all sizes in em, 1em = cabinet width / 56 ===== */
+.cab-wrap{container-type:inline-size;width:100%;max-width:560px;margin-top:22px}
+.cab{position:relative;font-size:calc(100cqw / 56);width:56em;height:42em;border-radius:2.8em;user-select:none;-webkit-user-select:none;
+  background:var(--brush),linear-gradient(180deg,#E2E7E4 0%,#C3CBC7 38%,#A5AFAB 62%,#CDD4D0 100%);background-size:600px 200px,auto;background-blend-mode:overlay,normal;
+  box-shadow:inset 0 .12em 0 rgb(255 255 255 / .85),inset 0 -.18em 0 rgb(0 0 0 / .22),0 .22em 0 #6E7874,0 2.4em 3.2em -1.6em rgb(46 38 20 / .6),0 .8em 1.4em -.6em rgb(46 38 20 / .3)}
+.cab-body{position:absolute;inset:.7em;border-radius:2.2em;
+  background:radial-gradient(85% 65% at 12% 4%,rgb(255 255 255 / .16),transparent 55%),linear-gradient(165deg,#2E594D 0%,#24483F 44%,#1C3B33 100%);
+  box-shadow:inset 0 .14em 0 rgb(255 255 255 / .22),inset 0 -.3em .6em rgb(0 0 0 / .35),0 0 0 .1em #16302A}
+.eng{font-family:"IBM Plex Sans";font-weight:500;text-transform:uppercase;letter-spacing:.2em;color:var(--steel-l);text-shadow:0 -.08em 0 rgb(0 0 0 / .55)}
+.plate{position:absolute;left:2em;top:1.5em;height:3.9em;padding:.55em 2.3em 0;display:flex;align-items:baseline;gap:.6em;border-radius:.5em;color:var(--ink);
+  background:linear-gradient(180deg,#EBD7A6 0%,#D8BD84 42%,#BF9D5E 58%,#DEC48C 100%);border:.1em solid var(--brass-d);
+  box-shadow:0 0 0 .28em #17312A,0 0 0 .36em rgb(255 255 255 / .12),inset 0 .12em 0 rgb(255 255 255 / .65),inset 0 -.12em 0 rgb(0 0 0 / .22)}
+.plate::before,.plate::after{content:"";position:absolute;top:50%;width:.9em;height:.9em;margin-top:-.45em;border-radius:50%;background:linear-gradient(45deg,transparent 43%,rgb(60 40 10 / .65) 44% 56%,transparent 57%),radial-gradient(circle at 35% 35%,#F6EACB,#9A773F 72%)}
+.plate::before{left:.75em}.plate::after{right:.75em}
+.plate-no{font:500 1.3em/1 "IBM Plex Sans";letter-spacing:.08em}
+.plate-num{font:500 2.5em/1 "IBM Plex Mono";letter-spacing:.06em;text-shadow:0 .04em 0 rgb(255 248 225 / .55)}
+.nameplate{position:absolute;right:2.4em;top:2.55em;font-size:1.12em;letter-spacing:.26em}
+.bay{position:absolute;left:2em;top:7em;width:33.6em;height:27.6em;border-radius:1.3em;perspective:70em;
+  background:linear-gradient(180deg,#10231D,#183229);box-shadow:inset 0 .35em .9em rgb(0 0 0 / .65),0 .08em 0 rgb(255 255 255 / .14),0 -.06em 0 rgb(0 0 0 / .4)}
+.interior{position:absolute;inset:0}
+.spill{position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(75% 95% at 0% 50%,rgb(255 214 150 / .3),transparent 70%);opacity:0;transition:opacity var(--dur-door) var(--ease)}
+.cab[data-door=swing] .spill{opacity:1}
+.cab[data-door=open] .spill{opacity:.3}
+.drawer{position:absolute;left:1.2em;top:1.4em;width:27.2em;height:12em;border-radius:.7em;border:.08em solid #5E6865;
+  background:var(--brush),linear-gradient(180deg,#D5DBD8 0%,#BCC4C0 45%,#A3ADA9 55%,#C4CBC7 100%);background-size:600px 200px,auto;background-blend-mode:overlay,normal;
+  box-shadow:inset 0 .1em 0 rgb(255 255 255 / .7),inset 0 -.2em 0 rgb(0 0 0 / .18),0 .25em .5em rgb(0 0 0 / .5);
+  transition:transform var(--dur-settle) var(--ease),box-shadow var(--dur-settle) var(--ease)}
+.cab[data-drawer=ajar] .drawer{transform:translate3d(0,.15em,.8em);box-shadow:inset 0 .1em 0 rgb(255 255 255 / .7),inset 0 -.2em 0 rgb(0 0 0 / .18),0 .7em 1.2em rgb(0 0 0 / .55)}
+.cab[data-drawer=out] .drawer{transform:translate3d(0,.5em,3.4em);transition-duration:var(--dur-drawer);transition-timing-function:cubic-bezier(.45,0,.15,1);box-shadow:inset 0 .1em 0 rgb(255 255 255 / .7),inset 0 -.2em 0 rgb(0 0 0 / .18),0 1.6em 2.2em rgb(0 0 0 / .6)}
+.holder{position:absolute;padding:.3em;border-radius:.35em;background:linear-gradient(180deg,#9AA39F,#6F7975);box-shadow:inset 0 .08em .12em rgb(0 0 0 / .5),0 .06em 0 rgb(255 255 255 / .5)}
+.drawer .holder{left:1.6em;top:2.4em}
+.label{width:16.4em;height:6.4em;padding:.85em 1em .7em;border-radius:.2em;background:linear-gradient(180deg,#F7F3EA,#ECE6D6);color:var(--ink);display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto 1fr;align-items:end;box-shadow:inset 0 .06em .1em rgb(0 0 0 / .25)}
+.lab-t{grid-column:1/-1;font:500 1.05em/1 "IBM Plex Sans";letter-spacing:.18em;color:var(--ink-2)}
+.lab-n{font:500 2.4em/1 "IBM Plex Mono";font-variant-numeric:tabular-nums}
+.lab-u{font:500 1.05em/1 "IBM Plex Sans";letter-spacing:.1em;color:var(--ink-2);margin:0 0 .25em .55em}
+.pull{position:absolute;right:1.9em;top:4.9em;width:5.4em;height:2.1em;border-radius:1.05em;background:linear-gradient(180deg,#F1F4F2,#A9B2AE 55%,#7E8884);box-shadow:0 0 0 .45em #7B8581,0 0 0 .52em rgb(255 255 255 / .4),0 .5em .6em rgb(0 0 0 / .4),inset 0 .08em 0 #fff}
+.latch{position:absolute;left:29.2em;top:4.4em;width:3.2em;height:6em;border-radius:.4em;z-index:2;background:linear-gradient(90deg,#8E979A,#D4DAD7 40%,#9AA3A0);box-shadow:0 .2em .4em rgb(0 0 0 / .5),inset 0 .08em 0 rgb(255 255 255 / .6)}
+.latch-bar{position:absolute;left:27.8em;top:6.8em;width:2.6em;height:1.2em;border-radius:.2em;z-index:1;background:linear-gradient(180deg,#F0F3F1,#A9B2AE 60%,#7E8884);box-shadow:0 .12em .2em rgb(0 0 0 / .5);transition:transform var(--dur-bolt) var(--ease)}
+.cab[data-bolt=retracted] .latch-bar{transform:translateX(.6em)}
+.latch-l{position:absolute;left:29.2em;top:10.9em;width:3.2em;text-align:center}
+.latch-l span{font-size:.8em;letter-spacing:.14em}
+.shelf{position:absolute;left:.6em;right:.6em;top:14.5em;height:.5em;border-radius:.25em;background:linear-gradient(180deg,#7E8884,#4E5855);box-shadow:0 .1em .2em rgb(0 0 0 / .5)}
+.jar{position:absolute;left:2.6em;top:15.7em;width:9.6em;height:11em}
+.lid{position:absolute;left:-.4em;right:-.4em;top:0;height:1.9em;border-radius:.35em .35em .2em .2em;z-index:3;background:linear-gradient(180deg,rgb(255 255 255 / .55),rgb(255 255 255 / 0) 45%,rgb(0 0 0 / .28)),repeating-linear-gradient(90deg,#DDE3E0 0 .22em,#8F9995 .22em .44em);box-shadow:0 .15em .25em rgb(0 0 0 / .45)}
+.glass{position:absolute;left:0;right:0;top:1.7em;bottom:0;overflow:hidden;border-radius:.5em .5em 1.3em 1.3em;border:.12em solid rgb(214 232 224 / .45);
+  background:linear-gradient(90deg,rgb(255 255 255 / .06),rgb(255 255 255 / .22) 14%,rgb(255 255 255 / .05) 30%,rgb(255 255 255 / .03) 70%,rgb(255 255 255 / .14) 88%,rgb(255 255 255 / .05));box-shadow:inset 0 -.8em 1.2em rgb(0 0 0 / .3)}
+.glass::after{content:"";position:absolute;left:.9em;top:.6em;bottom:.8em;width:.5em;border-radius:.25em;z-index:2;background:linear-gradient(180deg,rgb(255 255 255 / .45),rgb(255 255 255 / .04))}
+.coin{position:absolute;width:6.2em;height:1.5em;border-radius:50%;background:linear-gradient(180deg,#F1DFAE,#CDAA60 55%,#9A773F);box-shadow:0 .16em 0 var(--brass-d),0 .3em .3em rgb(0 0 0 / .35),inset 0 .08em 0 rgb(255 255 255 / .55)}
+.coin.drop{animation:coinDrop 420ms var(--ease-fall) both}
+@keyframes coinDrop{from{transform:translateY(-9em);opacity:0}30%{opacity:1}to{transform:none;opacity:1}}
+.jarlab{left:14.2em;top:17.4em}
+.leaf{position:absolute;inset:0;z-index:4;margin:0;padding:0;border:0;border-radius:1.3em;cursor:pointer;font:inherit;color:inherit;
+  background:radial-gradient(80% 70% at 18% 8%,rgb(255 255 255 / .13),transparent 55%),linear-gradient(165deg,#2C5549,#22463C 55%,#1C3A32);
+  box-shadow:inset 0 .12em 0 rgb(255 255 255 / .18),inset 0 -.2em .4em rgb(0 0 0 / .3),0 .1em .3em rgb(0 0 0 / .5);
+  transform-origin:0 50%;transition:transform var(--dur-door) var(--ease),opacity 200ms var(--ease)}
+.cab[data-door=swing] .leaf{transform:perspective(120em) rotateY(-18deg)}
+.cab[data-door=open] .leaf{transform:perspective(120em) rotateY(-18deg);opacity:0;pointer-events:none}
+.hinge{position:absolute;left:-.55em;width:1.1em;height:3.6em;border-radius:.55em;background:linear-gradient(90deg,#6B737A,#E3E7EA 45%,#9AA2A8 70%,#5E666C);box-shadow:0 .1em .2em rgb(0 0 0 / .5)}
+.hinge.h1{top:3.4em}.hinge.h2{bottom:3.4em}
+.ticks{position:absolute;left:50%;top:46%;width:24em;height:24em;margin:-12em 0 0 -12em;border-radius:50%;
+  background:repeating-conic-gradient(rgb(220 227 223 / .45) 0 .45deg,transparent .45deg 6deg);
+  -webkit-mask:radial-gradient(circle,transparent 11.3em,#000 11.35em 11.85em,transparent 11.9em);mask:radial-gradient(circle,transparent 11.3em,#000 11.35em 11.85em,transparent 11.9em)}
+.ticks.major{background:repeating-conic-gradient(rgb(233 238 235 / .85) 0 .9deg,transparent .9deg 30deg);-webkit-mask:radial-gradient(circle,transparent 10.9em,#000 10.95em 11.95em,transparent 12em);mask:radial-gradient(circle,transparent 10.9em,#000 10.95em 11.95em,transparent 12em)}
+.disc{position:absolute;left:50%;top:46%;width:20.4em;height:20.4em;margin:-10.2em 0 0 -10.2em;border-radius:50%;
+  background:repeating-radial-gradient(circle at 50% 50%,rgb(255 255 255 / .06) 0 .1em,rgb(0 0 0 / .06) .1em .2em),conic-gradient(from 20deg,#8E969D,#E3E7EA 12%,#9AA2A8 25%,#C4CACE 38%,#7F878E 50%,#E3E7EA 62%,#9AA2A8 75%,#C4CACE 88%,#8E969D);
+  box-shadow:inset 0 0 0 .8em rgb(0 0 0 / .07),inset 0 0 0 .9em rgb(255 255 255 / .28),inset 0 0 0 1.7em rgb(0 0 0 / .05),inset 0 0 2.4em rgb(0 0 0 / .35),0 .5em 1.2em rgb(0 0 0 / .55),0 0 0 .3em #17312A}
+.wheel{position:absolute;left:50%;top:46%;width:13.8em;height:13.8em;margin:-6.9em 0 0 -6.9em;transition:transform var(--dur-door) var(--ease);filter:drop-shadow(0 .3em .3em rgb(0 0 0 / .45))}
+.cab[data-wheel=hold] .wheel{transform:rotate(30deg)}
+.cab[data-wheel=open] .wheel{transform:rotate(90deg)}
+.leaf-label{position:absolute;left:0;right:0;bottom:.7em;text-align:center}
+.leaf-label span{font-size:.9em}
+.keys{position:absolute;left:37.6em;top:7em;width:15em;height:27.6em}
+.sock{position:absolute;left:0;width:15em;height:10em}
+.sock.s1{top:.6em}.sock.s2{top:10.6em}
+.esc{position:absolute;left:1.4em;top:0;width:6.6em;height:6.6em;border-radius:50%;
+  background:conic-gradient(from 20deg,#8E969D,#E3E7EA 12%,#9AA2A8 25%,#C4CACE 38%,#7F878E 50%,#E3E7EA 62%,#9AA2A8 75%,#C4CACE 88%,#8E969D);
+  box-shadow:0 0 0 .3em #17312A,0 0 0 .38em rgb(255 255 255 / .1),0 .25em .5em rgb(0 0 0 / .45),inset 0 .1em .15em rgb(255 255 255 / .6)}
+.esc::before{content:"";position:absolute;inset:1.15em;border-radius:50%;background:radial-gradient(circle at 40% 35%,#CDD4D0,#89938F 72%);box-shadow:inset 0 .12em .22em rgb(0 0 0 / .5),0 .05em 0 rgb(255 255 255 / .5)}
+.hole{position:absolute;left:50%;top:50%;width:2.4em;height:2.4em;margin:-1.2em;z-index:1}
+.key{position:absolute;left:50%;top:50%;z-index:2;width:2.8em;height:5.4em;margin:-2.7em 0 0 -1.4em;border-radius:1.4em;display:grid;place-items:end center;padding-bottom:.55em;opacity:0;
+  transform:translateY(-.5em);transition:opacity 200ms var(--ease),transform var(--dur-turn) var(--ease)}
+.key::before{content:"";position:absolute;left:50%;top:.65em;width:.8em;height:.8em;margin-left:-.4em;border-radius:50%;background:#1A362F;box-shadow:inset 0 .1em .1em rgb(0 0 0 / .6)}
+.key b{font:500 1.2em/1 "IBM Plex Mono";color:rgb(32 43 40 / .72)}
+.k1{background:linear-gradient(90deg,#8E969D,#EEF1EF 45%,#A9B1B6 70%,#7F878E);box-shadow:0 .25em .4em rgb(0 0 0 / .5),inset 0 .08em 0 #fff}
+.k2{background:linear-gradient(90deg,#8A6A2A,#EFDCA8 45%,#C9A45A 70%,#8A6A2A);box-shadow:0 .25em .4em rgb(0 0 0 / .5),inset 0 .08em 0 rgb(255 250 230 / .9)}
+.cab[data-k1=in] .k1,.cab[data-k2=in] .k2{opacity:1;transform:none}
+.cab[data-turned="1"] .key{transform:rotate(30deg)}
+.cab[data-rattle="1"] .k2{animation:rattle 180ms linear 3}
+@keyframes rattle{25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+.ind{position:absolute;left:9.7em;top:2.5em;width:3.6em;height:1.6em;border-radius:.4em;overflow:hidden;background:#0E1E19;box-shadow:inset 0 .12em .25em rgb(0 0 0 / .75),0 .06em 0 rgb(255 255 255 / .14)}
+.ind i{position:absolute;inset:.2em;border-radius:.25em;background:linear-gradient(180deg,#4A9A70,#2E6B4C);transform:translateX(-112%);transition:transform var(--dur-bolt) var(--ease)}
+.ind i::after{content:"✓";position:absolute;inset:0;text-align:center;color:#F1EDE2;font:600 1em/1.2em "IBM Plex Sans"}
+.cab[data-i1="1"] .s1 .ind i,.cab[data-i2="1"] .s2 .ind i{transform:none}
+.lbl{position:absolute;left:0;top:7.35em;width:9.4em;text-align:center}
+.lbl span{font-size:.95em}
+.hours{position:absolute;left:1.4em;top:21.4em;width:11.9em;padding:.45em 0;border-radius:.3em;text-align:center;color:var(--ink);font:500 1em/1.5 "IBM Plex Sans";letter-spacing:.16em;
+  background:linear-gradient(180deg,#E6CF98,#C4A263 60%,#D9BC7C);box-shadow:inset 0 .08em 0 rgb(255 255 255 / .6),0 .12em .2em rgb(0 0 0 / .4)}
+.hours span{display:block;font-size:.78em}
+.plaque{position:absolute;left:2em;right:2em;bottom:1.35em;height:3em;border-radius:.4em;display:grid;place-items:center;color:var(--ink);
+  background:linear-gradient(180deg,#EBD7A6 0%,#D2B57A 45%,#BF9D5E 58%,#DCC18A 100%);border:.08em solid var(--brass-d);box-shadow:inset 0 .1em 0 rgb(255 255 255 / .6),inset 0 -.1em 0 rgb(0 0 0 / .2),0 .15em .3em rgb(0 0 0 / .4)}
+.plaque span{font:500 .92em/1 "IBM Plex Sans";letter-spacing:.12em;text-shadow:0 .06em 0 rgb(255 248 225 / .5)}
+.plaque .short{display:none}
+@container (max-width:420px){.plaque .long{display:none}.plaque .short{display:inline;font-size:1.25em}}
+.svc{display:none;position:absolute;right:3.6em;top:-2.6em;z-index:6;width:14.5em;padding:1.9em 1em 1em 1.3em;border-radius:.7em;background:linear-gradient(180deg,#A3493C,#923D32);color:#FBF8F1;transform:rotate(4deg);transform-origin:50% 0;box-shadow:0 .6em 1.1em rgb(0 0 0 / .35),inset 0 .1em 0 rgb(255 255 255 / .25)}
+.svc::before{content:"";position:absolute;left:50%;top:.45em;width:1.1em;height:1.1em;margin-left:-.55em;border-radius:50%;background:#1C3B33;box-shadow:0 0 0 .22em #D2B57A}
+.svc b{display:block;font:600 1.45em/1.1 "IBM Plex Sans";letter-spacing:.12em}
+.svc span{display:block;margin-top:.25em;font:500 1.35em/1 "IBM Plex Mono"}
+.cab[data-exit="1"] .svc{display:block;animation:tagIn 420ms var(--ease) both}
+@keyframes tagIn{from{opacity:0;transform:translateY(-.8em) rotate(4deg)}}
+/* ===== below the cabinet ===== */
+.below{max-width:560px}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px}
+.actions.x4 .btn.danger{grid-column:1/-1}
+.note{margin-top:8px;color:var(--ink-2);font-size:14px}
+.total{margin-top:16px;font-size:15px;color:var(--ink-2)}
+.total b{color:var(--ink);font-weight:500}
+.empty{margin-top:4px;font-weight:500}
+.comps{display:grid;grid-template-columns:.8fr 1.2fr;gap:12px;margin-top:12px;align-items:start}
+.comp{background:rgb(251 248 241 / .72);border:1px solid var(--rule);border-radius:12px;padding:14px 16px;display:grid;gap:4px;align-content:start}
+.comp h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:19px}
+.comp .bal{font:500 16px/1 "IBM Plex Mono";white-space:nowrap}
+.comp .bal small{font-size:12px;color:var(--ink-2)}
+.vault{font-weight:500}
+.risk{font-weight:500}
+.q{background:none;border:1px solid var(--rule);border-radius:10px;padding:0 6px;font-size:13px;color:var(--ink-2);cursor:pointer;min-height:24px}
+.why{font-size:14px;line-height:20px;color:var(--ink-2);background:var(--ivory-2);border-radius:8px;padding:8px 10px}
+.hb{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:13px;line-height:18px;color:var(--ink-2)}
+.hb .dot{width:8px;height:8px;border-radius:50%;background:var(--brass);flex:none}
+.hb .dot.pulse{animation:pulse 900ms var(--ease)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgb(154 119 63 / .6)}100%{box-shadow:0 0 0 8px rgb(154 119 63 / 0)}}
+.hb.stale{color:var(--amber)}
+.hb.stale .dot{background:var(--amber)}
+.minor{margin-top:10px;font-size:14px}
+/* ===== right column ===== */
+.land{padding-top:34px;display:grid;gap:20px}
+.lead{font-size:17px;line-height:27px}
+.cta{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cta-i{display:grid;gap:8px;align-content:start}
+.cta .btn{width:100%}
+.sub{font-size:14px;line-height:20px;color:var(--ink-2)}
+.plaque-row{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;padding-top:16px;border-top:1px solid var(--rule)}
+.plaque-txt{font:500 12px/18px "IBM Plex Sans";letter-spacing:.14em;color:var(--brass-d)}
+.strip{font:500 12px/18px "IBM Plex Mono";letter-spacing:.08em}
+.strip a{color:var(--ink-2)}
+.card{background:var(--paper);border:1px solid var(--rule);border-radius:14px;padding:20px;box-shadow:0 1px 0 #fff inset,0 14px 30px -22px rgb(60 50 30 / .6);display:grid;gap:12px;align-content:start}
+.stack{display:grid;gap:16px}
+.row-btns{display:flex;flex-wrap:wrap;gap:10px}
+.msg{font-size:15px;line-height:22px}
+.msg.err{color:var(--red);font-weight:500}
+.okline{font-weight:500;color:var(--ok)}
+.status{font-size:15px;color:var(--ink-2);display:flex;align-items:center;gap:10px}
+.status::before{content:"";width:14px;height:14px;border-radius:50%;border:2px solid var(--rule);border-top-color:var(--green);animation:spin 900ms linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.warn{color:var(--red)}
+.tour-ribbon{justify-self:start;padding:6px 12px;border:2px solid var(--ink);border-radius:4px;font:500 12px/1 "IBM Plex Mono";letter-spacing:.16em}
+.rail{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.rail-b{width:100%;min-height:48px;padding:6px 8px;border:1px solid var(--rule);border-radius:10px;background:rgb(251 248 241 / .6);cursor:pointer;display:flex;align-items:center;gap:8px;font-size:14px;line-height:18px;text-align:left}
+.rail-b[aria-current=step]{background:var(--green);border-color:var(--green-dd);color:var(--ivory)}
+.rail-n{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid currentColor;font:500 12px/1 "IBM Plex Mono";flex:none}
+.captions{list-style:none;display:grid;gap:6px;counter-reset:c}
+.captions li{counter-increment:c;display:flex;gap:10px;font-size:15px;line-height:21px;color:var(--ink-2);opacity:.4}
+.captions li::before{content:counter(c);font:500 12px/21px "IBM Plex Mono";color:var(--brass-d)}
+.captions li.on{opacity:1;color:var(--ink)}
+.what{background:var(--ivory-2);border-radius:10px;padding:12px 14px}
+.what ol{padding-left:20px;font-size:14px;line-height:20px;display:grid;gap:4px;margin-top:6px}
+.facts{padding-left:18px;display:grid;gap:8px}
+.example{border:1px dashed var(--ink-2);border-radius:10px;padding:10px;display:grid;gap:8px}
+.ex-l{font:500 12px/1 "IBM Plex Mono";letter-spacing:.1em;color:var(--ink-2)}
+.ex-b{background:var(--red);color:#FBF8F1;border-radius:6px;padding:8px 10px;font-size:14px;line-height:20px}
+.uses{padding-left:18px;display:grid;gap:4px;font-size:15px}
+.psteps{list-style:none;display:grid}
+.psteps li{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:6px 0;border-bottom:1px solid var(--rule)}
+.psteps li.wide{display:block}
+.changed{background:rgb(146 61 50 / .14);color:var(--red);border-radius:3px;padding:0 2px}
+.steps{list-style:none;display:grid;gap:10px}
+.steps>li{border:1px solid var(--rule);border-radius:12px;padding:14px 16px;background:rgb(251 248 241 / .6);display:grid;gap:10px}
+.steps>li.now{background:var(--paper);border-color:#BDB39C;box-shadow:0 12px 24px -20px rgb(60 50 30 / .7)}
+.steps>li.done h3::after{content:" ✓";color:var(--ok)}
+.steps>li.todo{opacity:.55}
+.steps h3{font-size:18px}
+.rules{padding-left:18px;font-size:14px;line-height:20px;display:grid;gap:3px}
+.cb{display:flex;gap:10px;align-items:flex-start;font-size:15px;line-height:22px;cursor:pointer}
+.cb input,.radio input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--green);flex:none}
+.tray{border-radius:12px;padding:14px 14px 18px;background:linear-gradient(180deg,#DCD4C0,#E6DFCD);box-shadow:inset 0 3px 8px rgb(60 50 30 / .35),inset 0 -1px 0 rgb(255 255 255 / .6),0 1px 0 #fff}
+.kcard{position:relative;border-radius:10px;background:#FAF5E6;overflow:hidden;box-shadow:0 1px 0 #fff inset,0 6px 12px -6px rgb(60 50 30 / .6)}
+.kcard.settle{animation:settle var(--dur-settle) var(--ease) both}
+@keyframes settle{from{transform:translateY(-12px)}}
+.kc-h{display:flex;justify-content:space-between;padding:8px 12px;background:var(--green);color:var(--ivory);font:500 11px/1.3 "IBM Plex Sans";letter-spacing:.16em}
+.kc-b{display:grid;grid-template-columns:1fr 64px;gap:10px;padding:10px 12px 12px}
+.kc-f{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0;font:500 12px/17px "IBM Plex Mono"}
+.kc-f dt{color:var(--ink-2)}
+.kc-f dd{margin:0}
+.kc-qr{width:64px;height:64px}
+.kc-k{grid-column:1/-1;font:500 11px/16px "IBM Plex Mono";letter-spacing:.06em;color:var(--green)}
+.kc-c{grid-column:1/-1;font:400 11px/16px "IBM Plex Mono";color:var(--ink-2);letter-spacing:.1em}
+.warnbox{border-left:3px solid var(--red);padding:2px 0 2px 12px;font-size:14px;line-height:20px}
+/* passbook */
+.ledger{position:relative;background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:16px 18px 14px;box-shadow:0 1px 0 #fff inset,0 14px 30px -22px rgb(60 50 30 / .6)}
+.ledger.flat{border:0;box-shadow:none;padding:0;background:none}
+.ledger::before{content:"";position:absolute;top:52px;bottom:0;left:79px;width:1px;background:rgb(146 61 50 / .3)}
+.ledger.flat::before{left:61px;top:0}
+.lg-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+.lg-cols,.lg-row{display:grid;grid-template-columns:52px minmax(0,1fr) 58px 58px 66px;column-gap:10px}
+.lg-row{grid-template-areas:"d s i o b" "d p i o b"}
+.lg-cols{font:500 11px/1 "IBM Plex Mono";letter-spacing:.12em;color:var(--ink-2);padding:6px 0 8px;border-bottom:1px solid var(--ink)}
+.lg-cols span:nth-child(n+3){text-align:right}
+.lg-rows{list-style:none}
+.lg-row{align-items:center;row-gap:3px;min-height:54px;padding:8px 0;border-bottom:1px solid var(--rule);color:inherit;text-decoration:none;font-size:14px;line-height:18px}
+.lg-row:hover{background:rgb(154 119 63 / .07)}
+.lg-row.fresh{animation:inkIn var(--dur-ink) linear both}
+@keyframes inkIn{from{opacity:0}}
+.c-d{grid-area:d;font:500 13px/18px "IBM Plex Mono";align-self:start;padding-top:2px}
+.c-s{grid-area:s;display:flex;gap:6px;flex-wrap:wrap}
+.c-p{grid-area:p;color:var(--ink-2);font-size:13px;overflow-wrap:break-word}
+.c-in{grid-area:i;text-align:right;color:var(--ok)}
+.c-out{grid-area:o;text-align:right;color:var(--red)}
+.c-b{grid-area:b;text-align:right}
+.lg-int{margin-top:10px;padding-top:8px;border-top:1px dashed var(--brass);font-size:13px;line-height:19px;color:var(--brass-d)}
+.lg-note{margin-top:8px;font-size:13px;line-height:19px;color:var(--ink-2)}
+.stamp{--sc:var(--ok);display:inline-block;padding:.3em .55em;color:var(--sc);border:3px double var(--sc);border-radius:3px;font:500 12px/1 "IBM Plex Mono";letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;transform:rotate(-2deg)}
+.stamp.green{--sc:var(--ok)}.stamp.brass{--sc:var(--brass-d)}.stamp.ink{--sc:var(--ink)}.stamp.red{--sc:var(--red)}
+.stamp.big{font-size:22px;border-width:4px;padding:.28em .5em;opacity:.9;mix-blend-mode:multiply;-webkit-mask-image:var(--ink-mask);mask-image:var(--ink-mask);-webkit-mask-size:160px;mask-size:160px;transform:rotate(-4deg)}
+.stamp.stamp-in{animation:stampIn 460ms var(--ease) both}
+@keyframes stampIn{0%{transform:scale(1.35) rotate(-8deg);opacity:0}24%{transform:scale(1) rotate(-4deg);opacity:.9}100%{transform:scale(1) rotate(-4deg);opacity:.9}}
+.slip{position:relative;background:#FFFDF7;border:1px solid var(--rule);border-radius:6px;padding:12px 14px;display:grid;gap:6px;box-shadow:0 8px 18px -14px rgb(60 50 30 / .6)}
+.slip-h{display:flex;justify-content:space-between;gap:8px;font:500 11px/16px "IBM Plex Mono";letter-spacing:.14em;color:var(--ink-2);padding-bottom:6px;border-bottom:1px solid var(--rule)}
+.slip-l{font:400 14px/22px "IBM Plex Mono"}
+.slip .stamp.big{position:absolute;right:14px;bottom:12px}
+.slip .k2ok{position:absolute;right:16px;top:36px;transform:rotate(3deg)}
+.slip.tall{min-height:130px;padding-bottom:62px}
+.fld{display:grid;gap:6px;font-weight:500}
+.amt-wrap{display:flex;align-items:center;border:1px solid #9C9483;border-radius:10px;background:#fff;overflow:hidden}
+.amt-wrap:focus-within{outline:3px solid var(--ink);outline-offset:2px}
+.amt{flex:1;min-width:0;border:0;outline:0;background:none;height:56px;padding:0 14px;font-size:24px;color:var(--ink)}
+.amt[readonly]{color:var(--ink-2)}
+.unit{padding:0 14px;color:var(--ink-2);font:500 14px/1 "IBM Plex Sans";letter-spacing:.08em}
+.addr{width:100%;height:48px;border:1px solid #9C9483;border-radius:10px;padding:0 12px;font:400 15px/1 "IBM Plex Mono";background:#fff}
+.fld-meta{display:flex;justify-content:space-between;gap:10px;font-size:14px;color:var(--ink-2)}
+.fs{border:0;margin:0;padding:0;display:grid;gap:8px}
+.fs legend{font-weight:500;margin-bottom:6px;padding:0}
+.radio{display:flex;gap:10px;align-items:center;min-height:46px;padding:0 12px;border:1px solid var(--rule);border-radius:10px;background:#fff;cursor:pointer;font-size:15px}
+.radio:has(input:checked){border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid #9C9483;border-radius:10px;overflow:hidden}
+.seg label{position:relative;display:grid;place-items:center;min-height:48px;cursor:pointer;font-weight:500}
+.seg input{position:absolute;opacity:0}
+.seg label:has(input:checked){background:var(--green);color:var(--ivory)}
+.steps2{list-style:none;display:grid;gap:10px}
+.steps2 li{border:1px solid var(--rule);border-radius:10px;padding:12px 14px;display:grid;gap:10px;background:#fff}
+.steps2 li.todo{opacity:.5}
+.steps2 li.done{background:none}
+.choose{display:grid;gap:12px;padding-top:4px}
+.ch-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ch{border:1px solid var(--rule);border-radius:12px;padding:14px;background:#fff;display:grid;gap:6px;align-content:start}
+.ch .btn{margin-top:6px}
+details summary{cursor:pointer;font-weight:500;min-height:32px}
+details p{font-size:14px;line-height:20px;color:var(--ink-2)}
+.dev dl{display:grid;gap:4px;margin:8px 0 0}
+.dev dl div{display:flex;justify-content:space-between;gap:10px}
+.dev dd{margin:0;text-align:right}
+.keyplates{display:grid;gap:10px}
+.kp{border:1px solid var(--rule);border-radius:12px;padding:12px 14px;background:#fff;display:grid;gap:8px}
+.kp h3{font-size:18px;display:flex;align-items:center;gap:10px}
+.kp.on{border-color:var(--ok);box-shadow:inset 3px 0 0 var(--ok)}
+.kp.on h3::after{content:"✓";margin-left:auto;color:var(--ok);font:600 16px/1 "IBM Plex Sans"}
+.mini{position:relative;flex:none;width:26px;height:26px;border-radius:50%;background:conic-gradient(from 20deg,#8E969D,#E3E7EA 25%,#9AA2A8 50%,#E3E7EA 75%,#8E969D);box-shadow:0 0 0 2px #17312A}
+.mini i{position:absolute;left:10px;top:3px;width:6px;height:20px;border-radius:3px;background:#5E6865;transition:transform var(--dur-turn) var(--ease)}
+.mini.m2 i{background:#B08D3C}
+.kp.turned .mini i{transform:rotate(30deg)}
+.drop{border:2px dashed #BDB39C;border-radius:10px;padding:14px;display:grid;gap:10px;justify-items:start}
+.drop.over{border-color:var(--green);background:rgb(36 72 63 / .06)}
+.picker{border:1px solid #C9C1AE;border-radius:10px;overflow:hidden;background:#fff;display:grid}
+.picker-h{padding:8px 12px;font-size:13px;background:var(--ivory-2)}
+.pick{min-height:44px;border:0;border-top:1px solid var(--rule);background:#fff;text-align:left;padding:0 12px;font:400 14px/1 "IBM Plex Mono";cursor:pointer}
+.pick:hover{background:var(--ivory)}
+.picker .link{padding:10px 12px;justify-self:start}
+.signing{display:grid;gap:8px}
+.track{position:relative;height:4px;border-radius:2px;background:var(--rule);overflow:hidden}
+.fill{position:absolute;inset:0;background:var(--green);transform-origin:0 50%;transform:scaleX(0)}
+.sign-meta{display:flex;justify-content:space-between;gap:10px;font-size:14px;line-height:20px}
+.signed{display:grid;gap:6px;justify-items:start}
+.done-h{font-size:24px;line-height:30px}
+.exit-card{border-color:var(--red);box-shadow:inset 4px 0 0 var(--red),0 14px 30px -22px rgb(60 50 30 / .6)}
+.exit-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.exit-top .tag{background:var(--red);color:#FBF8F1}
+.cd-big{font:500 20px/1 "IBM Plex Mono"}
+.exit-dl{display:grid;gap:8px;margin:0}
+.exit-dl div{display:grid;grid-template-columns:130px 1fr;gap:10px;font-size:15px;line-height:21px}
+.exit-dl dt{color:var(--ink-2)}
+.exit-dl dd{margin:0}
+.confirm-box{border:2px solid var(--red);border-radius:12px;padding:14px;display:grid;gap:10px}
+.letter{display:grid;gap:12px;font-size:16px;line-height:25px}
+.letter ul{padding-left:20px;display:grid;gap:6px}
+/* sheet = counter window; desktop: right column, sticky */
+.sheet{position:sticky;top:calc(var(--bannerH) + 16px);z-index:40;max-height:calc(100dvh - var(--bannerH) - 32px);display:flex}
+.sheet[hidden]{display:none}
+.sheet-in{display:flex;flex-direction:column;width:100%;background:var(--paper);border:1px solid #CFC6B0;border-radius:14px;overflow:hidden;box-shadow:0 1px 0 #fff inset,0 28px 60px -26px rgb(40 32 16 / .6)}
+.sheet.in{animation:rise var(--dur-base) var(--ease) both}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px 12px 20px;border-bottom:1px solid var(--rule)}
+.sheet-head h2{outline:0}
+.x{flex:none;width:44px;height:44px;border:1px solid var(--rule);border-radius:10px;background:#fff;font-size:22px;line-height:1;cursor:pointer}
+.x[disabled]{opacity:.4;cursor:not-allowed}
+.sheet-body{padding:18px 20px 24px;overflow:auto;display:grid;gap:14px;align-content:start}
+body.sheet-open #rightContent{display:none}
+.scrim{display:none}
+/* simulated wallet */
+.wal{position:fixed;top:16px;right:16px;z-index:60;width:340px;background:#fff;color:#1d1d1f;border-radius:14px;box-shadow:0 24px 60px rgb(0 0 0 / .35),0 0 0 1px rgb(0 0 0 / .08);font:400 14px/20px -apple-system,system-ui,"Segoe UI",sans-serif;overflow:hidden;animation:rise 200ms var(--ease) both}
+.wal[hidden]{display:none}
+.wal-top{display:flex;align-items:center;gap:8px;padding:12px 14px;background:#f5f5f7;border-bottom:1px solid #e5e5ea}
+.wal-logo{width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,#5b6cff,#9b59ff)}
+.wal-sim{margin-left:auto;font-size:10px;letter-spacing:.1em;color:#8e8e93;border:1px solid #d1d1d6;border-radius:4px;padding:1px 5px}
+.wal-site{padding:12px 14px 0;color:#6e6e73;font-size:12px}
+.wal-h{padding:2px 14px 8px;font:600 17px/24px -apple-system,system-ui,sans-serif}
+.wal-dl{margin:0;padding:0 14px;display:grid;gap:6px}
+.wal-dl div{display:flex;justify-content:space-between;gap:12px;padding-bottom:6px;border-bottom:1px solid #f0f0f2}
+.wal-dl dt{color:#6e6e73}
+.wal-dl dd{margin:0;text-align:right;font-weight:500}
+.wal-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px}
+.wal-b{min-height:44px;border-radius:10px;border:1px solid #d1d1d6;background:#fff;font:600 15px/1 -apple-system,system-ui,sans-serif;cursor:pointer}
+.wal-b.ok{background:#3b5bfd;border-color:#3b5bfd;color:#fff}
+/* jumper */
+.jumper{position:fixed;inset:0;z-index:70;background:rgb(32 43 40 / .55);display:grid;place-items:start center;padding:32px 16px;overflow:auto}
+.jumper[hidden]{display:none}
+.jp-in{width:min(980px,100%);background:var(--paper);border-radius:16px;padding:18px 20px 22px;box-shadow:0 30px 80px rgb(0 0 0 / .4);display:grid;gap:12px}
+.jp-h{display:flex;justify-content:space-between;align-items:center}
+.jp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px 18px}
+.jp-grid section{display:grid;gap:4px;align-content:start}
+.jp-grid h3{font:600 12px/1 "IBM Plex Sans";letter-spacing:.14em;text-transform:uppercase;color:var(--brass-d);margin-bottom:4px}
+.jp-b{text-align:left;min-height:34px;padding:4px 10px;border:1px solid var(--rule);border-radius:8px;background:#fff;cursor:pointer;font-size:14px;line-height:18px}
+.jp-b:hover{border-color:var(--green)}
+.foot{border-top:1px solid var(--rule);margin-top:24px}
+.foot-in{max-width:1200px;margin:0 auto;padding:22px 24px 40px;display:grid;gap:10px}
+.disclaim{font-size:16px;line-height:25px;max-width:860px}
+.links{font-size:14px;display:flex;flex-wrap:wrap;gap:6px 12px}
+.jump *,.jump *::before,.jump *::after{transition:none!important;animation:none!important}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:1ms!important;animation-duration:1ms!important;animation-iteration-count:1!important}}
+@media (forced-colors:active){.stamp.big{-webkit-mask-image:none;mask-image:none;mix-blend-mode:normal;opacity:1}}
+@media (max-width:1023px){
+  .stage{grid-template-columns:1fr;max-width:640px;gap:28px}
+  .cab-wrap{margin:14px auto 0}
+  .below{margin:0 auto}
+  .land{padding-top:0}
+  body.sheet-open #rightContent{display:block}
+  .sheet{position:fixed;top:auto;bottom:0;left:50%;translate:-50% 0;width:min(560px,100vw);max-height:calc(100dvh - 16px)}
+  .sheet-in{border-radius:16px 16px 0 0}
+  .scrim{display:block;position:fixed;inset:0;z-index:39;background:rgb(32 43 40 / .4)}
+  .scrim[hidden]{display:none}
+}
+@media (max-width:639px){
+  h1{font-size:32px;line-height:36px}
+  h2{font-size:23px;line-height:29px}
+  .proto{font-size:11px;padding:4px 8px}
+  .bar{height:56px;padding:0 16px}
+  .wm-sub,#chipWallet,#chipBox{display:none!important}
+  .stage{padding:12px 16px 110px;gap:22px}
+  .cab-wrap{margin-top:30px}
+  .banner-in{flex-wrap:wrap;padding:10px 16px;gap:8px 12px}
+  .banner-in .btn{width:100%}
+  .cta{grid-template-columns:1fr}
+  .actions.dock{position:fixed;left:0;right:0;bottom:0;z-index:30;margin:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:rgb(241 237 226 / .96);border-top:1px solid var(--rule);box-shadow:0 -8px 20px -14px rgb(60 50 30 / .5)}
+  .actions.x4 .btn.danger{display:none}
+  .comps{grid-template-columns:1fr}
+  .rail{grid-template-columns:repeat(2,1fr)}
+  .ch-cards{grid-template-columns:1fr}
+  .sheet{left:0;translate:none;width:100vw;height:calc(100dvh - 16px)}
+  .sheet-body{padding:16px 16px 28px}
+  .wal{left:0;right:0;top:auto;bottom:0;width:auto;border-radius:16px 16px 0 0}
+  .ledger::before{display:none}
+  .lg-cols{display:none}
+  .lg-row{grid-template-columns:auto 1fr auto;grid-template-areas:"d s b" "p p io";min-height:60px}
+  .c-in,.c-out{grid-area:io}
+  .c-in:not(:empty)::before{content:"In ";color:var(--ink-2)}
+  .c-out:not(:empty)::before{content:"Out ";color:var(--ink-2)}
+  .c-b::before{content:"Balance ";color:var(--ink-2);font-family:"IBM Plex Sans";font-size:12px}
+  .exit-dl div{grid-template-columns:1fr;gap:0}
+  .foot-in{padding:20px 16px 110px}
+}
+</style>
+</head>
+<body>
+<div class="proto" role="note">PROTOTYPE — chain calls simulated <button type="button" data-act="jumper" aria-keyshortcuts="?">Screens (?)</button></div>
+<header class="bar">
+  <div class="brand"><span class="wm">Arc Guard</span><span class="wm-sub">SAFE DEPOSIT</span></div>
+  <div class="bar-r">
+    <span id="chipBox" class="chip" hidden></span>
+    <span id="chipWallet" class="chip mono" hidden></span>
+    <button id="soundBtn" type="button" class="chip" data-act="sound" aria-pressed="true">Sound: on</button>
+  </div>
+</header>
+<div id="banner" class="banner" hidden></div>
+<main id="main">
+  <div class="stage">
+    <section class="left" aria-label="Your box">
+      <div class="cab-wrap">
+        <div class="cab" id="cab" data-door="closed">
+          <div class="cab-body">
+            <div class="plate" aria-hidden="true"><span class="plate-no">No.</span><span class="plate-num" id="plateNum">––––</span></div>
+            <div class="nameplate eng" aria-hidden="true">Arc Guard · Safe Deposit</div>
+            <div class="bay">
+              <div class="interior" aria-hidden="true">
+                <div class="drawer"><div class="holder"><div class="label"><span class="lab-t">LOCKER</span><span class="lab-n" id="cabLocker">0.00</span><span class="lab-u">USDC</span></div></div><div class="pull"></div></div>
+                <span class="latch-bar"></span><span class="latch"></span><span class="latch-l"><span class="eng">Bolt</span></span>
+                <div class="shelf"></div>
+                <div class="jar"><div class="lid"></div><div class="glass"><div id="coins"></div></div></div>
+                <div class="holder jarlab"><div class="label"><span class="lab-t">SAVINGS</span><span class="lab-n" id="cabSavings">0.00</span><span class="lab-u">USDC</span></div></div>
+              </div>
+              <div class="spill"></div>
+              <button type="button" class="leaf" id="leaf" data-act="leaf" tabindex="-1" aria-hidden="true">
+                <span class="hinge h1"></span><span class="hinge h2"></span>
+                <span class="ticks"></span><span class="ticks major"></span><span class="disc"></span>
+                <svg class="wheel" viewBox="-60 -60 120 120" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="wsteel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2F5F3"/><stop offset=".5" stop-color="#B7C0BC"/><stop offset="1" stop-color="#7E8884"/></linearGradient>
+                    <radialGradient id="wbrass" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#F3E3B6"/><stop offset=".6" stop-color="#C9A45A"/><stop offset="1" stop-color="#8A6A2A"/></radialGradient>
+                  </defs>
+                  <g fill="url(#wsteel)" stroke="#56605C" stroke-width="1">
+                    <g id="spk"><rect x="-4.5" y="-50" width="9" height="44" rx="4.5"/><circle cx="0" cy="-49" r="8.5"/></g>
+                    <use href="#spk" transform="rotate(120)"/><use href="#spk" transform="rotate(240)"/>
+                  </g>
+                  <circle r="15" fill="url(#wbrass)" stroke="#6E5424" stroke-width="1.2"/>
+                  <circle r="5" fill="#1A362F"/>
+                </svg>
+                <span class="leaf-label"><span class="eng">Turn to open</span></span>
+              </button>
+            </div>
+            <div class="keys" aria-hidden="true">
+              <div class="sock s1"><div class="esc"><svg class="hole" viewBox="0 0 20 20"><path d="M10 3.2a3.3 3.3 0 0 0-1.6 6.2L7.4 16.4h5.2l-1-7A3.3 3.3 0 0 0 10 3.2z" fill="#141B18"/></svg><span class="key k1"><b>1</b></span></div><span class="ind"><i></i></span><span class="lbl"><span class="eng">Wallet</span></span></div>
+              <div class="sock s2"><div class="esc"><svg class="hole" viewBox="0 0 20 20"><rect x="8.6" y="3" width="2.8" height="14" rx="1.4" fill="#141B18"/><rect x="4.5" y="8.6" width="11" height="2.8" rx="1.4" fill="#141B18"/></svg><span class="key k2"><b>2</b></span></div><span class="ind"><i></i></span><span class="lbl"><span class="eng">Key card</span></span></div>
+              <div class="hours"><span>OPEN 24 HOURS</span><span>ARC MAINNET</span></div>
+            </div>
+            <div class="plaque" aria-hidden="true"><span class="long">TWO KEYS TO WITHDRAW · SECOND KEY BUILT TO RESIST QUANTUM COMPUTERS</span><span class="short">SECOND KEY RESISTS QUANTUM COMPUTERS</span></div>
+            <div class="svc" aria-hidden="true"><b>EXIT PENDING</b><span id="tagLeft">6d 23h</span></div>
+          </div>
+        </div>
+      </div>
+      <div id="below" class="below"></div>
+    </section>
+    <section class="right">
+      <div id="rightContent"></div>
+      <aside id="sheet" class="sheet" hidden role="dialog" aria-labelledby="sheetTitle">
+        <div class="sheet-in">
+          <div class="sheet-head"><h2 id="sheetTitle" tabindex="-1"></h2><button type="button" class="x" id="sheetX" data-act="closeSheet" aria-label="Close">×</button></div>
+          <div id="sheetBody" class="sheet-body"></div>
+        </div>
+      </aside>
+    </section>
+  </div>
+</main>
+<div id="scrim" class="scrim" hidden data-act="closeSheet"></div>
+<div id="wallet" class="wal" hidden role="dialog" aria-label="Your wallet (simulated)"></div>
+<div id="jumper" class="jumper" hidden role="dialog" aria-label="Screens"></div>
+<p id="live" class="sr" aria-live="polite"></p>
+<footer class="foot">
+  <div class="foot-in">
+    <p class="disclaim">Arc Guard is open-source software (MIT), not a bank. It's non-custodial: your money sits in a smart contract on Arc that only your two keys can open. We hold no key and can't move it. Not insured. Not approved, endorsed or run by Circle. Savings uses the Galaxy USDC vault on Morpho, run by third parties, and lending carries risk. The contract is new and has not been audited; a bug could lose funds. Anyone with both your wallet and your key card can take everything. Deposit only what you can afford to lose.</p>
+    <p class="links"><a href="https://github.com/" target="_blank" rel="noopener">Source code</a><span aria-hidden="true">·</span><a href="https://explorer.arc.io" target="_blank" rel="noopener">Contract on Arc</a><span aria-hidden="true">·</span><button type="button" class="link" data-act="plaque">How it works</button><span aria-hidden="true">·</span><button type="button" class="link" data-act="plaque">Risks</button><span aria-hidden="true">·</span><button type="button" class="link" data-act="exitStart">Lost your key card?</button></p>
+  </div>
+</footer>
+<noscript><p style="padding:16px">Arc Guard needs JavaScript to talk to Arc.</p></noscript>
+<script>
+(() => {
+'use strict';
+/* ===== sound: sound.js recipes from design/research/sound-motion.md, plus concept C detent + bolt ===== */
+const SFX = (() => {
+  const PREF = 'pqg-sound', MASTER = 0.5;
+  let ctx = null, out = null, room = null, noise = null, soundOn = true;
+  try { soundOn = localStorage.getItem(PREF) !== 'off'; } catch (e) {}
+  function setSound(on) { soundOn = on; try { localStorage.setItem(PREF, on ? 'on' : 'off'); } catch (e) {} if (out) out.gain.setTargetAtTime(on ? MASTER : 0, ctx.currentTime, 0.03); }
+  function unlock() {
+    if (ctx) return ctx.resume();
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    ctx = new AC({ latencyHint: 'interactive' });
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -14; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.25;
+    out = ctx.createGain(); out.gain.value = soundOn ? MASTER : 0; out.connect(comp).connect(ctx.destination);
+    noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const ir = ctx.createBuffer(2, Math.floor(ctx.sampleRate * 0.9), ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const r = ir.getChannelData(ch); for (let i = 0; i < r.length; i++) r[i] = (Math.random() * 2 - 1) * (1 - i / r.length) ** 3; }
+    room = ctx.createConvolver(); room.buffer = ir; room.connect(out);
+    return ctx.resume && ctx.resume();
+  }
+  const ready = () => ctx && soundOn;
+  const now = (at) => ctx.currentTime + 0.02 + at;
+  function bus(vol, wet) { const g = ctx.createGain(); g.gain.value = vol; g.connect(out); const s = ctx.createGain(); s.gain.value = wet; g.connect(s).connect(room); return g; }
+  function env(dest, t, peak, attack, decay) { const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay); g.connect(dest); return g; }
+  function hold(dest, t, peak, attack, sustain, release) { const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + attack); g.gain.setValueAtTime(peak, t + attack + sustain); g.gain.exponentialRampToValueAtTime(0.0001, t + attack + sustain + release); g.connect(dest); return g; }
+  function noiseBurst(dest, t, dur, type, freq, q = 1) { const src = ctx.createBufferSource(); src.buffer = noise; src.loop = true; const f = ctx.createBiquadFilter(); f.type = type; f.Q.value = q; f.frequency.setValueAtTime(freq, t); src.connect(f).connect(dest); src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.05); return f; }
+  function tone(dest, t, dur, type, f0, f1 = f0) { const o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur); o.connect(dest); o.start(t); o.stop(t + dur + 0.05); return o; }
+  const thud = (dest, t, f0, f1, dur, vol) => tone(env(dest, t, vol, 0.004, dur), t, dur, 'sine', f0, f1);
+  const tick = (dest, t, hz, vol, q = 6, dur = 0.03) => noiseBurst(env(dest, t, vol, 0.001, dur), t, dur, 'bandpass', hz, q);
+  const R = {
+    keyInsert(at = 0) { if (!ready()) return; const t = now(at), b = bus(0.7, 0.1); const f = noiseBurst(env(b, t, 0.18, 0.02, 0.26), t, 0.28, 'bandpass', 2600, 3); f.frequency.exponentialRampToValueAtTime(4200, t + 0.28); [3900, 4300, 3600, 4700, 4100].forEach((hz, i) => tick(b, t + 0.05 + i * 0.045, hz, 0.22, 10, 0.02)); thud(b, t + 0.3, 220, 120, 0.06, 0.3); },
+    keyTurn(at = 0) { if (!ready()) return; const t = now(at), b = bus(1, 0.3); noiseBurst(env(b, t, 0.08, 0.05, 0.25), t, 0.3, 'bandpass', 1200, 2); [0, 0.1, 0.2].forEach((d) => tick(b, t + d, 2400 - d * 2000, 0.25, 8, 0.025)); const c = t + 0.32; thud(b, c, 120, 50, 0.3, 0.9); tick(b, c, 650, 0.5, 1.5, 0.07); tone(env(b, c, 0.05, 0.002, 0.45), c, 0.45, 'sine', 1180); tone(env(b, c, 0.03, 0.002, 0.35), c, 0.35, 'sine', 2710); },
+    drawerSlide(at = 0, dur = 0.9) { if (!ready()) return; const t = now(at), b = bus(0.8, 0.2); const f = noiseBurst(hold(b, t, 0.25, 0.12, dur - 0.32, 0.2), t, dur, 'bandpass', 380, 1.2); f.frequency.linearRampToValueAtTime(260, t + dur); for (let d = 0.05; d < dur - 0.1; d += 0.07) tick(b, t + d, 1100, 0.05, 4, 0.02); thud(b, t + dur, 130, 60, 0.18, 0.5); },
+    stamp(at = 0) { if (!ready()) return; const t = now(at), b = bus(1, 0.2); thud(b, t, 160, 55, 0.12, 0.9); noiseBurst(env(b, t, 0.35, 0.002, 0.07), t, 0.08, 'lowpass', 450, 0.8); tick(b, t + 0.004, 380, 0.3, 5, 0.09); noiseBurst(env(b, t + 0.22, 0.06, 0.01, 0.05), t + 0.22, 0.06, 'highpass', 2500, 0.7); },
+    coin(at = 0) { if (!ready()) return; const t = now(at), b = bus(0.8, 0.25); const base = 2400 * (0.96 + Math.random() * 0.08); [[0, 1], [0.085, 0.45], [0.14, 0.2]].forEach(([d, v]) => { [1, 1.47, 2.09, 2.56].forEach((r, i) => tone(env(b, t + d, (0.25 * v) / (i + 1), 0.001, 0.35 - i * 0.06), t + d, 0.4, 'sine', base * r)); }); tone(env(b, t, 0.1, 0.003, 0.7), t, 0.7, 'sine', 1320); tick(b, t, 5000, 0.2, 1, 0.012); },
+    errorBuzz(at = 0) { if (!ready()) return; const t = now(at), b = bus(0.6, 0.1); const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500; lp.connect(b); [0, 0.2].forEach((d) => tone(hold(lp, t + d, 0.18, 0.015, 0.1, 0.04), t + d, 0.16, 'square', 98)); [0.42, 0.5, 0.56].forEach((d) => tick(b, t + d, 1800, 0.12, 6, 0.02)); },
+    emergencyBell(at = 0, seconds = 1.1) { if (!ready()) return; const t = now(at), b = bus(0.5, 0.4), ring = ctx.createGain(); ring.gain.setValueAtTime(0.0001, t); ring.connect(b); [[1, 0.5], [2.32, 0.25], [4.25, 0.15], [6.63, 0.08]].forEach(([r, v]) => { const g = ctx.createGain(); g.gain.value = v; g.connect(ring); tone(g, t, seconds + 1.5, 'sine', 740 * r); }); for (let i = 0; i < seconds * 16; i++) { const s = t + i / 16; ring.gain.setValueAtTime(1, s); ring.gain.setTargetAtTime(0.35, s, 0.02); tick(b, s, 3000, 0.08, 3, 0.01); } ring.gain.setTargetAtTime(0.0001, t + seconds, 0.45); },
+    // concept C cues: detent = noise -> 1800 Hz bandpass Q3, 25 ms decay; bolt = sine 110 -> 65 Hz, 140 ms decay
+    detent(at = 0) { if (!ready()) return; const t = now(at), b = bus(0.9, 0.12); noiseBurst(env(b, t, 0.55, 0.002, 0.025), t, 0.04, 'bandpass', 1800, 3); },
+    bolt(at = 0) { if (!ready()) return; const t = now(at), b = bus(0.9, 0.2); tone(env(b, t, 0.8, 0.002, 0.14), t, 0.16, 'sine', 110, 65); tick(b, t, 650, 0.3, 1.5, 0.05); },
+    doorRelease(at = 0) { if (!ready()) return; [0, 0.05, 0.1].forEach((d) => R.detent(at + d)); R.bolt(at + 0.14); const t = now(at + 0.2), b = bus(0.5, 0.35); noiseBurst(hold(b, t, 0.1, 0.06, 0.28, 0.14), t, 0.5, 'lowpass', 260, 0.7); thud(b, t + 0.48, 95, 55, 0.2, 0.45); },
+  };
+  return Object.assign(R, { unlock, setSound, get on() { return soundOn; } });
+})();
+
+/* ===== utils ===== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+const ms = (v) => (RM.matches ? 1 : v);           // 1 ms, not 0, so end events still fire
+const sleep = (t) => new Promise((r) => setTimeout(r, t));
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const f2 = (n) => Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const r6 = (n) => Math.round(n * 1e6) / 1e6;
+const short = (a) => a.slice(0, 6) + '…' + a.slice(-4);
+const boxNoOf = (a) => String(parseInt(a.slice(-4), 16) % 10000).padStart(4, '0');  // last 4 hex -> decimal mod 10,000
+const sig2 = (x) => String(Number(x.toPrecision(2)));
+const p2 = (n) => String(n).padStart(2, '0');
+const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const dshort = (d = new Date()) => `${p2(d.getDate())} ${MON[d.getMonth()]}`;
+const APY = 0.0558;                                // % a year, Galaxy USDC vault (spec)
+const YEAR = 365 * 86400;
+const EXPLORER = 'https://explorer.arc.io';
+const hash = () => '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join('');
+const txUrl = (h) => `${EXPLORER}/tx/${h}?tab=logs`;
+const txShort = (h) => h.slice(0, 6) + '…' + h.slice(-4);
+const isPhone = () => matchMedia('(max-width: 639px), (pointer: coarse)').matches;
+const rateLine = () => `${sig2(APY)}% a year: about ${Math.round(APY * 100)}¢ on every $100`;
+const minsPerMicro = (v) => Math.round((1e-6 * YEAR / 60) / (v * APY / 100));
+const parseAmt = (s) => { s = String(s || '').trim().replace(/,/g, ''); if (!s) return { e: 'Enter an amount.' }; if (!/^\d*\.?\d*$/.test(s)) return { e: 'Enter an amount above zero.' }; if ((s.split('.')[1] || '').length > 6) return { e: 'USDC goes to 6 decimal places at most.' }; const v = Number(s); if (!(v > 0)) return { e: 'Enter an amount above zero.' }; return { v }; };
+const announce = (t) => { const l = $('#live'); l.textContent = ''; setTimeout(() => (l.textContent = t), 30); };
+function fmtWhen(ts) {
+  const d = new Date(ts);
+  const parts = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' }).formatToParts(d);
+  const g = (t) => (parts.find((p) => p.type === t) || {}).value || '';
+  return `${g('weekday')} ${g('day')} ${g('month')} ${g('year')}, ${g('hour')}:${g('minute')} ${g('timeZoneName')} (${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())} UTC)`;
+}
+
+/* ===== data (the prototype's pretend chain) ===== */
+const DEMO_ADDR = '0x9c2E4b7A1f03D8e5C6a2B90417dE5c3F8a2d37bF';   // builder's box -> No. 4271
+const ME_ADDR = '0x5aD1c09E3B7f4A2d8C61e0F5b93A7D24c1Fae2C4';     // your wallet   -> No. 8052
+const DEMO_WD_TX = hash(), DEMO_EXIT_TX = hash(), DEMO_CANCEL_TX = hash();
+const T0 = Date.now();
+const DEMO = {
+  addr: DEMO_ADDR, no: boxNoOf(DEMO_ADDR), locker: 20, savings: 30, earned0: 0.000412, print: 'D7F3-91AC', demo: true,
+  rows: [
+    { d: '14 SEP', st: 'OPENED', ink: 'green', p: 'Box opened · card 6C0E-5B27', in: 0, out: 0, bal: 0, tx: hash() },
+    { d: '14 SEP', st: 'DEPOSITED', ink: 'green', p: 'Deposit from 0x9c2E…37bF', in: 55, out: 0, bal: 55, tx: hash() },
+    { d: '16 SEP', st: 'SAVED', ink: 'brass', p: 'Locker → Savings · 30.00', in: 0, out: 0, bal: 55, tx: hash() },
+    { d: '18 SEP', st: 'WITHDRAWN', st2: 'KEY 2 OK', ink: 'ink', p: 'Paid to 0x9c2E…37bF', in: 0, out: 5, bal: 50, tx: DEMO_WD_TX },
+    { d: '21 SEP', st: 'NEW CARD', ink: 'ink', p: 'Key card replaced · new print D7F3-91AC', in: 0, out: 0, bal: 50, tx: hash() },
+    { d: '22 SEP', st: 'EXIT STARTED', ink: 'red', p: 'Emergency exit to 0x9c2E…37bF · opens 29 SEP', in: 0, out: 0, bal: 50, tx: DEMO_EXIT_TX },
+    { d: '22 SEP', st: 'CANCELLED', ink: 'green', p: 'Emergency exit cancelled with key card', in: 0, out: 0, bal: 50, tx: DEMO_CANCEL_TX },
+  ],
+};
+function row(b, st, ink, p, inn = 0, out = 0, extra = {}) {
+  const prev = b.rows.length ? b.rows[b.rows.length - 1].bal : 0;
+  b.rows.push({ d: dshort(), st, ink, p, in: inn, out, bal: r6(prev + inn - out), tx: hash(), fresh: true, ...extra });
+}
+function makeMine(locker, savings) {
+  const b = { addr: ME_ADDR, no: boxNoOf(ME_ADDR), locker, savings, earned0: 0, savedAt: savings ? Date.now() - 3 * 3600e3 : 0, print: 'A1B2-C3D4', rows: [] };
+  row(b, 'OPENED', 'green', `Box opened · card ${b.print}`);
+  if (locker + savings > 0) row(b, 'DEPOSITED', 'green', `Deposit from ${short(ME_ADDR)}`, locker + savings);
+  if (savings > 0) row(b, 'SAVED', 'brass', `Locker → Savings · ${f2(savings)}`);
+  b.rows.forEach((r) => (r.fresh = false));
+  return b;
+}
+// Interest at real speed: only the last Arc read counts (updates on the 10 s heartbeat), never fake ticking.
+const earned = (b) => Math.max(0, b.demo ? b.earned0 + b.savings * APY / 100 * ((HB.last - T0) / 1000) / YEAR : (b.savedAt ? b.savings * APY / 100 * ((HB.last - b.savedAt) / 1000) / YEAR : 0));
+const total = (b) => r6(b.locker + b.savings);
+
+/* ===== state ===== */
+const freshSock = () => ({ door: 'closed', wheel: '', k1: 'none', k2: 'none', i1: 0, i2: 0, turned: 0, bolt: 'thrown', drawer: 'in', rattle: 0 });
+const S = { view: 'landing', walletFound: true, connected: false, connecting: false, landErr: null, box: null, walletBal: 124.5, tourStep: 1, practice: null, replay: null, open: null, sheet: null, exit: null, err: null, remembered: false, sock: freshSock() };
+const current = () => (S.view === 'tour' ? DEMO : S.box);
+
+/* ===== heartbeat: "Checked with Arc N s ago" (silent, every 10 s) ===== */
+const HB = { last: Date.now(), block: 22660862, fail: false };
+const hbHTML = () => `<p class="hb"><i class="dot" aria-hidden="true"></i><span class="hb-t"></span></p>`;
+function paintHB() {
+  const s = Math.floor((Date.now() - HB.last) / 1000);
+  $$('.hb').forEach((el) => { el.classList.toggle('stale', s > 30); el.querySelector('.hb-t').textContent = `Checked with Arc ${s} s ago · block ${HB.block.toLocaleString('en-US')}`; });
+}
+setInterval(() => {
+  if (!HB.fail && Date.now() - HB.last >= 10000) {
+    HB.last = Date.now(); HB.block += 18 + Math.floor(Math.random() * 5);
+    $$('.hb .dot').forEach((d) => { d.classList.remove('pulse'); void d.offsetWidth; d.classList.add('pulse'); });
+    $$('.earned-v').forEach((el) => { const b = el.dataset.box === 'demo' ? DEMO : S.box; if (b) el.textContent = earned(b).toFixed(6); });
+  }
+  paintHB(); tickExit();
+}, 1000);
+
+/* ===== flows: one token; any jump or new flow cancels the old one ===== */
+let TOKEN = 0;
+const STOP = Symbol('stop');
+function flow(fn) {
+  const t = ++TOKEN;
+  const c = {
+    alive: () => t === TOKEN,
+    wait: (d) => sleep(d).then(() => { if (t !== TOKEN) throw STOP; }),
+    ask: (o) => walletAsk(o).then((v) => { if (t !== TOKEN) throw STOP; return v; }),
+  };
+  return fn(c).catch((e) => { if (e !== STOP) console.error(e); });
+}
+function cancelFlows() { TOKEN++; closeWallet(false); }
+
+/* ===== simulated wallet popup ===== */
+let walletResolve = null, walletSeq = 0;
+function walletAsk({ title, rows = [], action = 'Confirm', kind = 'tx' }) {
+  closeWallet(false);
+  const w = $('#wallet'), id = ++walletSeq;
+  w.innerHTML = `<div class="wal-top"><span class="wal-logo" aria-hidden="true"></span><b>Your wallet</b><span class="wal-sim">SIMULATED</span></div>
+    <p class="wal-site">pqguard.app · Arc Mainnet (5042)</p><h4 class="wal-h">${esc(title)}</h4>
+    <dl class="wal-dl">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+    <div class="wal-btns"><button type="button" class="wal-b" data-wal="0">${kind === 'connect' ? 'Cancel' : 'Reject'}</button><button type="button" class="wal-b ok" data-wal="1">${esc(action)}</button></div>`;
+  setTimeout(() => { if (id === walletSeq && walletResolve) { w.hidden = false; w.querySelector('.ok').focus(); } }, 320);
+  return new Promise((r) => (walletResolve = r));
+}
+function closeWallet(v) { walletSeq++; $('#wallet').hidden = true; if (walletResolve) { const r = walletResolve; walletResolve = null; r(v); } }
+/* ===== render ===== */
+function render() { renderChrome(); renderCab(); renderBelow(); renderRight(); renderSheet(); }
+
+function exitLeft() { const s = Math.max(0, Math.floor((S.exit.readyAt - Date.now()) / 1000)); return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 }; }
+const countdown = () => { const L = exitLeft(); return `${L.d} days ${p2(L.h)}:${p2(L.m)}:${p2(L.s)}`; };
+function tickExit() {
+  if (!S.exit || S.exit.ready) return;
+  const L = exitLeft();
+  $$('.cd').forEach((el) => (el.textContent = countdown()));
+  $('#tagLeft').textContent = `${L.d}d ${L.h}h`;
+}
+
+function renderChrome() {
+  const cb = $('#chipBox'), cw = $('#chipWallet');
+  cb.hidden = !(S.view === 'tour' || (S.box && S.view === 'box'));
+  cb.textContent = S.view === 'tour' ? `No. ${DEMO.no} · view only` : S.box ? `Box No. ${S.box.no}` : '';
+  cw.hidden = !S.connected; cw.textContent = `${short(ME_ADDR)} · Arc`;
+  const sb = $('#soundBtn'); sb.textContent = `Sound: ${SFX.on ? 'on' : 'off'}`; sb.setAttribute('aria-pressed', String(SFX.on));
+  const bn = $('#banner'); let html = '', red = false;
+  if (S.exit && S.box) {
+    red = true;
+    html = S.exit.ready
+      ? `<span class="tag">EXIT PENDING</span><p><b>The exit is open.</b> ${f2(total(S.box))} USDC can now be paid to ${short(S.exit.to)}.</p><button type="button" class="btn onred" data-act="payout">Pay out now</button>`
+      : `<span class="tag">EXIT PENDING</span><p>Emergency exit pending. In <time class="cd mono" datetime="${new Date(S.exit.readyAt).toISOString()}">${countdown()}</time>, everything in this box goes to ${short(S.exit.to)}.</p><button type="button" class="btn onred" data-act="exitCancel">Cancel with key card</button>`;
+  } else if (S.err === 'rpc') html = `<p>Can't reach Arc right now. Your money hasn't moved. Try again in a minute.</p><button type="button" class="btn" data-act="clearErr">Try again</button>`;
+  else if (S.err === 'network') html = `<p>Your wallet is on another network. Switch to Arc to continue.</p><button type="button" class="btn primary" data-act="clearErr">Switch to Arc</button>`;
+  else if (S.err === 'disconnected') html = `<p>Your wallet disconnected. Your money hasn't moved.</p><button type="button" class="btn primary" data-act="reconnect">Reconnect</button>`;
+  bn.className = 'banner' + (red ? ' red' : '');
+  bn.hidden = !html; bn.innerHTML = html ? `<div class="banner-in">${html}</div>` : '';
+  document.documentElement.style.setProperty('--bannerH', (html ? bn.offsetHeight : 0) + 'px');
+  document.title = S.exit && S.box ? `EXIT PENDING · Box No. ${S.box.no}` : S.view === 'box' && S.box ? `Box No. ${S.box.no} · Arc Guard` : S.view === 'tour' ? `Box No. ${DEMO.no} · Arc Guard` : 'Arc Guard: a safe deposit box for your digital dollars';
+}
+
+const shown = {};
+let NOANIM = false;
+function setBal(sel, v) {
+  const el = $(sel), from = shown[sel]; shown[sel] = v;
+  if (from === undefined || from === v || RM.matches || NOANIM) { el.textContent = f2(v); return; }
+  const t0 = performance.now(), D = 600;   // --dur-count: odometer roll, only on confirmed changes
+  const step = (t) => { if (shown[sel] !== v) return; const p = Math.min(1, (t - t0) / D), e = 1 - (1 - p) ** 3; el.textContent = f2(from + (v - from) * e); if (p < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+const coinCount = (v) => (v <= 0 ? 0 : Math.max(1, Math.min(12, Math.round(3 * Math.log10(v) + 2))));  // log buckets, not growth theatre
+function paintCoins(v, drop = false) {
+  const box = $('#coins'), n = coinCount(v), have = box.children.length;
+  if (n < have) { while (box.children.length > n) box.lastChild.remove(); return; }
+  for (let i = have; i < n; i++) {
+    const c = document.createElement('i'); c.className = 'coin';
+    c.style.bottom = (0.5 + i * 0.78) + 'em'; c.style.left = `calc(50% - 3.1em + ${(((i * 37) % 7) - 3) * 0.12}em)`;
+    if (drop && !RM.matches && !NOANIM) { const dl = (i - have) * 140; c.style.animationDelay = dl + 'ms'; c.classList.add('drop'); SFX.coin((dl + 380) / 1000); }
+    box.appendChild(c);
+  }
+}
+function renderCab() {
+  const cab = $('#cab'), k = S.sock, b = current();
+  Object.assign(cab.dataset, { door: k.door, wheel: k.wheel, k1: k.k1, k2: k.k2, i1: k.i1, i2: k.i2, turned: k.turned, bolt: k.bolt, drawer: k.drawer, rattle: k.rattle, exit: S.exit && S.box && S.view !== 'tour' ? '1' : '0' });
+  $('#plateNum').textContent = S.view === 'tour' ? DEMO.no : S.connected ? boxNoOf(ME_ADDR) : '––––';
+  setBal('#cabLocker', b ? b.locker : 0); setBal('#cabSavings', b ? b.savings : 0);
+  paintCoins(b ? b.savings : 0);
+  if (S.exit && !S.exit.ready) { const L = exitLeft(); $('#tagLeft').textContent = `${L.d}d ${L.h}h`; } else if (S.exit) $('#tagLeft').textContent = 'OPEN NOW';
+}
+
+function renderBelow() {
+  const el = $('#below'), v = S.view;
+  if (v !== 'box' && v !== 'tour') { el.innerHTML = ''; return; }
+  const b = current(), view = v === 'tour', tot = total(b), dis = view ? 'disabled aria-describedby="vo"' : '';
+  el.innerHTML = `
+    <div class="actions ${view ? '' : 'dock'} ${S.exit && !view ? 'x4' : ''}">
+      ${S.exit && !view ? '<button type="button" class="btn danger" data-act="exitCancel">Cancel with key card</button>' : ''}
+      <button type="button" class="btn primary" data-act="deposit" ${dis}>Deposit</button>
+      <button type="button" class="btn primary" data-act="move" ${view || !tot ? 'disabled' : ''}>Move</button>
+      <button type="button" class="btn primary" data-act="withdraw" ${view || !tot ? 'disabled' : ''}>Withdraw</button>
+    </div>
+    ${view ? '<p class="note" id="vo">View only. Open your own box to use this.</p>' : ''}
+    <p class="total">In your box: <b class="mono">${f2(tot)}</b> USDC · Holder <span class="mono">${short(b.addr)}</span></p>
+    ${tot ? '' : '<p class="empty">Your box is empty. Deposits go into the Locker first.</p>'}
+    <div class="comps">
+      <section class="comp"><h3>Locker <span class="bal">${f2(b.locker)} <small>USDC</small></span></h3><p class="sm">Sits here. Doesn't earn.</p></section>
+      <section class="comp"><h3>Savings <span class="bal" aria-label="Savings balance, updating as it earns">${f2(b.savings)} <small>USDC</small></span></h3>
+        <p class="vault sm">Galaxy USDC vault on Morpho</p>
+        <p class="sm">${rateLine()} <span class="muted">· current rate</span></p>
+        ${b.savings > 0 ? `<p class="sm">Earned so far <span class="mono earned-v" data-box="${view ? 'demo' : 'mine'}">${earned(b).toFixed(6)}</span> USDC <button type="button" class="q" data-act="why" aria-expanded="false" aria-label="Why isn't it moving?">(?)</button></p>
+        <p class="why" id="why" hidden>At ${sig2(APY)}% a year, ${f2(b.savings)} USDC earns a millionth of a dollar about every ${minsPerMicro(b.savings)} minutes. The jar shows only what Arc reports.</p>` : ''}
+        <p class="risk sm">Earns by lending through Morpho. Small extra risk.</p>
+        ${b.savings > 0 ? `<p class="sm muted">At this rate, your ${f2(b.savings)} USDC earns about ${sig2(b.savings * APY / 100)} USDC a year.</p>` : ''}
+        ${hbHTML()}
+      </section>
+    </div>
+    ${view ? '' : '<p class="minor"><button type="button" class="link" data-act="exitStart">Lost your key card?</button></p>'}`;
+  paintHB();
+}
+
+function renderRight() {
+  const el = $('#rightContent'), v = S.view;
+  el.innerHTML = v === 'landing' ? landingHTML() : v === 'tour' ? tourHTML() : v === 'practice' ? practicePageHTML() : v === 'open' ? openHTML() : boxRightHTML();
+  if (el.dataset.view !== v) { el.dataset.view = v; el.classList.remove('enter'); void el.offsetWidth; if (!NOANIM) el.classList.add('enter'); }
+  paintHB();
+  [DEMO, S.box].forEach((b) => b && b.rows.forEach((r) => { if (!S.sheet) r.fresh = false; }));
+}
+
+function landingHTML() {
+  const nw = !S.walletFound;
+  const cA = `<div class="cta-i"><button type="button" class="btn big ${nw ? '' : 'primary'}" data-act="connect" ${S.connecting ? 'disabled' : ''}>${S.connecting ? 'Waiting for your wallet…' : 'Open the door'}</button><p class="sub">${nw ? 'Needs a wallet with a little USDC on Arc.' : 'Connect your wallet. Arc is added for you.'}</p></div>`;
+  const cB = `<div class="cta-i"><button type="button" class="btn big ${nw ? 'primary' : ''}" data-act="tour">See a real box</button><p class="sub">A live box on Arc, with every entry on the public record.</p></div>`;
+  const err = S.landErr === 'noWallet' ? 'No wallet found in this browser. Install a wallet app, or look around the demo box first.' : S.landErr === 'rejected' ? 'You cancelled in your wallet. Nothing was sent.' : '';
+  return `<div class="land">
+    <h1>Your dollars, behind two keys.</h1>
+    <p class="lead">A safe deposit box for USDC on Arc. To take money out, you need your wallet and a key card that only you hold. Keep your money in the Locker, or let it earn in Savings.</p>
+    <div class="cta">${nw ? cB + cA : cA + cB}</div>
+    ${err ? `<p class="msg err" role="alert">${err}</p>` : ''}
+    <p><button type="button" class="link" data-act="practice">or try Key 2 yourself →</button></p>
+    <div class="plaque-row"><p class="plaque-txt">TWO KEYS TO WITHDRAW · SECOND KEY BUILT TO RESIST QUANTUM COMPUTERS</p><button type="button" class="link sm" data-act="plaque">Read the plaque</button></div>
+    <p class="strip"><a href="${EXPLORER}" target="_blank" rel="noopener">LIVE ON ARC MAINNET · OPEN SOURCE (MIT) · CONTRACT VERIFIED ↗</a></p>
+  </div>`;
+}
+
+/* ----- tour (See a real box) ----- */
+function tourHTML() {
+  const st = S.tourStep;
+  const rail = ['Box', 'Two keys', 'Passbook', 'Lost card'].map((n, i) => `<li><button type="button" class="rail-b" data-act="tourStep" data-n="${i + 1}" ${st === i + 1 ? 'aria-current="step"' : ''}><span class="rail-n">${i + 1}</span>${n}</button></li>`).join('');
+  let body = '';
+  if (st === 1) body = `<p class="lead">This is the builder's own box, live on Arc. You can look at everything. Only its two keys can move anything.</p>${ledgerHTML(DEMO, 3)}<button type="button" class="btn primary big" data-act="tourStep" data-n="2">Next: the two keys</button>`;
+  if (st === 2) body = replayHTML() + practiceBlockHTML(true);
+  if (st === 3) body = `${ledgerHTML(DEMO, 0)}<p class="sm muted">Every line here is a real entry. Tap one to see its receipt on Arc's public record.</p><button type="button" class="btn primary big" data-act="tourStep" data-n="4">Next: lost card</button>`;
+  if (st === 4) body = lostCardHTML();
+  return `<div class="stack"><p class="tour-ribbon">A REAL BOX · VIEW ONLY</p><ol class="rail">${rail}</ol>${body}</div>`;
+}
+function replayHTML() {
+  const R = S.replay || { stage: 'idle', cap: 0 }, done = R.stage === 'done';
+  const caps = ['The slip: 5.00 USDC from the Locker to the owner\'s wallet.', 'Key 2: the owner\'s key card signed that exact slip.', 'Key 1: the owner\'s wallet sent it. Arc checked both keys.', 'Arc accepted. Both keys turned, and 5.00 USDC left the box.'];
+  return `<section class="card">
+    <h3>The owner's real withdrawal</h3>
+    <div class="slip tall"><div class="slip-h"><span>WITHDRAWAL SLIP</span><span>BOX No. ${DEMO.no}</span></div>
+      <p class="slip-l">5.00 USDC from Locker<br>to ${short(DEMO.addr)}</p>
+      <p class="slip-l muted">Key 1 · Owner's wallet ✓</p>
+      ${done ? '<span class="stamp green k2ok">KEY 2 OK</span><span class="stamp big ink">WITHDRAWN</span>' : ''}</div>
+    <ol class="captions">${caps.map((c, i) => `<li class="${R.cap > i ? 'on' : ''}">${c}</li>`).join('')}</ol>
+    ${done ? `<p class="sm muted">Replayed from Arc's public record · 18 Sep 2026, 14:02 UTC · fee 0.009 USDC</p>
+      <div class="what"><h4>What happened on Arc</h4><ol><li>The recipient was checked against the USDC blocked list.</li><li>Arc's built-in checker verified the 7,856-byte key-card signature.</li><li>The USDC moved, and the fee was paid in USDC.</li></ol></div>
+      <div class="row-btns"><a class="btn primary" id="replayLink" href="${txUrl(DEMO_WD_TX)}" target="_blank" rel="noopener">See it on Arc's public record ↗</a><button type="button" class="btn" data-act="replay">Replay</button></div>`
+      : `<button type="button" class="btn primary" data-act="replay" ${R.stage === 'playing' ? 'disabled' : ''}>${R.stage === 'playing' ? 'Replaying…' : 'Watch the owner\'s real withdrawal'}</button>`}
+  </section>`;
+}
+function lostCardHTML() {
+  return `<section class="card">
+    <h3>Lost your key card?</h3><p class="strong">Your money isn't lost.</p>
+    <ul class="facts"><li>Start the emergency exit with your wallet alone. After 7 days, everything in your box, Locker and Savings, is paid to the address you choose.</li>
+    <li>Why 7 days? So that someone with only your wallet can't empty your box at once. During the wait, your key card can cancel the exit.</li></ul>
+    <div class="example"><span class="ex-l">EXAMPLE: THIS BOX HAS NO EXIT PENDING</span><p class="ex-b"><b>EXIT PENDING</b> · Emergency exit pending. In 6 days 23:59:59, everything in this box goes to ${short(DEMO.addr)}.</p></div>
+    <p class="sm">The builder tried it on Arc: <a href="${txUrl(DEMO_EXIT_TX)}" target="_blank" rel="noopener">EXIT STARTED ↗</a> · <a href="${txUrl(DEMO_CANCEL_TX)}" target="_blank" rel="noopener">CANCELLED ↗</a></p>
+  </section>
+  <section class="card"><h3>What this uses on Arc</h3>
+    <ul class="uses"><li>Fees paid in USDC</li><li>Arc's built-in post-quantum checker at <span class="mono">0x1800…0004</span></li><li>The USDC blocked list at <span class="mono">0x1800…0001</span></li><li>Sub-second finality: a stamp means the action is final</li><li>The Galaxy USDC vault on Morpho</li></ul>
+    <div class="row-btns"><button type="button" class="btn primary" data-act="connect">Open your own box</button><a class="btn" href="https://github.com/" target="_blank" rel="noopener">Read the code ↗</a></div></section>`;
+}
+
+/* ----- practice: Try Key 2 yourself ----- */
+function signingHTML() {
+  return `<div class="signing" role="status" aria-label="Signing with your key card. Nothing has been sent yet.">
+    <div class="track" aria-hidden="true"><i class="fill"></i></div>
+    <div class="sign-meta"><span class="sign-msg">Your key card is signing…</span><span class="mono sign-t">0.0 s</span></div></div>`;
+}
+function practiceBlockHTML(inTour) {
+  const P = S.practice || { stage: 'idle', amt: '10.00' }, s = P.stage;
+  const amt = P.tampered ? '<span class="changed">90.00</span>' : '10.00';
+  const signLi = s === 'signing' ? `<li class="wide"><span>Sign the slip</span>${signingHTML()}</li>` : `<li><span>Sign the slip</span>${P.signed ? `<span class="stamp green">SIGNED ${P.signed} s</span>` : ''}</li>`;
+  const check = s === 'genuine' ? '<span class="stamp green">GENUINE 255 ms</span>' : s === 'refused' ? '<span class="stamp red">REFUSED</span>' : s === 'checking' ? '<span class="sm muted">Checking…</span>' : '';
+  return `<section class="card">
+    <h3>Try Key 2 yourself</h3>
+    <p class="sm">Cut a practice key card in your browser, sign a slip, and ask Arc to check it. No wallet, no money, no fee.</p>
+    <div class="slip"><p class="slip-l">SLIP: "Pay ${amt} USDC to 0x12ab…90cd". A sample message. Nothing will be paid.</p></div>
+    ${s === 'idle' ? '<button type="button" class="btn primary" data-act="practiceRun">Cut a practice card</button>' : `<ol class="psteps">
+      <li><span>Cut a practice card</span>${P.cut ? '<span class="stamp green">CUT</span>' : '<span class="sm muted">Cutting…</span>'}</li>
+      ${P.cut ? signLi : ''}
+      ${P.signed ? `<li><span>Ask Arc to check</span>${check}</li>` : ''}</ol>`}
+    ${P.cut && s !== 'cutting' ? '<p class="sm muted">Practice card cut. Print 9F2A-4C71. It opens no box.</p>' : ''}
+    ${s === 'checking' ? '<p class="status">Arc\'s built-in checker is reading the signature…</p>' : ''}
+    ${s === 'genuine' ? '<p class="okline">Arc says: genuine. The live network checked this signature in 255 ms. Nothing was written, so there\'s no receipt.</p><button type="button" class="btn" data-act="tamper">Change one letter</button>' : ''}
+    ${s === 'refused' ? '<p class="msg">Slip changed: "Pay 10.00 USDC" is now "Pay 90.00 USDC".</p><p class="msg err">Arc says: not genuine. Change one letter and the signature no longer fits. A forged or altered slip can\'t open a box.</p>' : ''}
+    <p class="sm muted">This practice card is thrown away when you leave. Real cards are cut when you open a box.</p>
+    ${inTour ? '' : '<button type="button" class="btn primary" data-act="connect">Open a real box</button>'}
+  </section>`;
+}
+const practicePageHTML = () => `<div class="stack"><p><button type="button" class="link" data-act="home">← Back to the door</button></p>${practiceBlockHTML(false)}</div>`;
+
+/* ----- open a box: four steps ----- */
+function qrSVG() {
+  let r = '', seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let y = 0; y < 21; y++) for (let x = 0; x < 21; x++) {
+    const f = (a, b) => x >= a && x < a + 7 && y >= b && y < b + 7;
+    const inF = f(0, 0) || f(14, 0) || f(0, 14);
+    const on = inF ? (() => { const ax = x < 7 ? x : x - 14, ay = y < 7 ? y : y - 14; return ax === 0 || ax === 6 || ay === 0 || ay === 6 || (ax > 1 && ax < 5 && ay > 1 && ay < 5); })() : rnd() > 0.52;
+    if (on) r += `M${x} ${y}h1v1h-1z`;
+  }
+  return `<svg class="kc-qr" viewBox="-1 -1 23 23" aria-hidden="true"><rect x="-1" y="-1" width="23" height="23" fill="#fff"/><path d="${r}" fill="#202B28"/></svg>`;
+}
+function kcardHTML(settle) {
+  return `<div class="kcard ${settle ? 'settle' : ''}" role="img" aria-label="Key card for Box No. ${boxNoOf(ME_ADDR)}, card print A1B2-C3D4">
+    <div class="kc-h"><span>ARC GUARD · SAFE DEPOSIT</span><span>KEY CARD</span></div>
+    <div class="kc-b"><dl class="kc-f"><dt>BOX No.</dt><dd>${boxNoOf(ME_ADDR)}</dd><dt>HOLDER</dt><dd>${short(ME_ADDR)}</dd><dt>ISSUED</dt><dd>2026-09-25</dd><dt>CARD PRINT</dt><dd>A1B2-C3D4</dd></dl>${qrSVG()}
+    <p class="kc-k">KEY 2 OF 2 · KEEP APART FROM YOUR WALLET</p><p class="kc-c">CARD CODE ●●●●●●●● ●●●●●●●● ●●●●●●●● ●●●●●●●● · hidden on screen</p></div></div>`;
+}
+function openHTML() {
+  const O = S.open, no = boxNoOf(ME_ADDR);
+  if (O.done) return `<div class="card"><span class="stamp big green" style="justify-self:start">OPENED</span><h2>Box No. ${no} is open.</h2><p>It's empty for now. Your first deposit goes into the Locker.</p><button type="button" class="btn primary big" data-act="firstDeposit">Make a deposit</button></div>`;
+  const cls = (n) => (O.step === n ? 'now' : O.step > n ? 'done' : 'todo');
+  const s3 = O.step >= 3 ? `<p class="sm">You'll see this card once. Save it where your wallet isn't: printed in a drawer, or on a different device.</p>
+      <div class="tray">${kcardHTML(O.settle)}</div>
+      <ul class="rules"><li>This is Key 2. Together with your wallet, it opens your box.</li><li>Keep it apart from your wallet. Not on the same phone, not in the same notes app.</li><li>Never share it. No one from Arc Guard will ever ask for it.</li><li>If you lose it, your money isn't lost. Use the 7-day emergency exit.</li><li>No one can replace it for you. There's no copy anywhere else.</li></ul>
+      <div class="row-btns"><button type="button" class="btn" data-act="dl">Download card</button><button type="button" class="btn" data-act="print">Print card</button><button type="button" class="btn" data-act="copyCard">Copy card text</button></div>
+      ${O.copied ? '<p class="okline sm">Copied. Paste it somewhere that isn\'t this device.</p>' : ''}${O.printed ? '<p class="sm muted">The print dialog opens with just the card (simulated in this prototype).</p>' : ''}
+      <p class="sm muted">Download didn't start? Some wallet apps block files. Print the card, or copy its text instead.</p>
+      <div><h4>Check your card</h4><p class="sm">Load the card you just saved, to make sure it works before you rely on it.</p></div>
+      ${O.checked ? `<p class="okline">Card checked. It fits Box No. ${no}.</p>` : O.skipped ? '<p class="sm warn">Skipping. If the saved card doesn\'t work, only the 7-day exit can get your money out.</p>' : '<div class="row-btns"><button type="button" class="btn" data-act="checkCard">Check my card</button><button type="button" class="link sm" data-act="skipCheck">Skip the check</button></div>'}
+      <label class="cb"><input type="checkbox" data-act="savedTick" ${O.saved ? 'checked' : ''}> I've saved my key card somewhere away from my wallet.</label>
+      <label class="cb"><input type="checkbox" data-act="rememberTick" ${S.remembered ? 'checked' : ''}> Also remember it on this device</label>
+      <p class="warnbox">Not recommended. Your wallet and your key card would then sit on the same device, so one thief could take both keys. Anyone using this browser, or a bad browser extension, could read the card.</p>` : '';
+  const can4 = O.saved && (O.checked || O.skipped) && !O.sending;
+  return `<div class="stack">
+    <h2>Right this way. Let's open your box.</h2>
+    <div><p>Your box: <b class="mono">No. ${no}</b></p><p class="sm muted">The number comes from your wallet's address. Same wallet, same box, on any device.</p></div>
+    <p class="sm muted">Four steps, about a minute.</p>
+    <ol class="steps">
+      <li class="done"><h3>1. Key 1: your wallet</h3><p class="sm">Connected: <span class="mono">${short(ME_ADDR)}</span></p>
+        ${O.noUsdc ? `<p class="msg err">This wallet has no USDC on Arc yet. You'll need a little: some to deposit, and about 0.01 USDC per action for fees. Add USDC, then come back. Nothing has been set up.</p><div class="row-btns"><button type="button" class="btn primary" data-act="checkAgain">Check again</button></div>` : ''}</li>
+      <li class="${O.noUsdc ? 'todo' : cls(2)}"><h3>2. Cut your key card</h3>${O.step === 2 && !O.noUsdc ? `<p class="sm">Your browser makes Key 2 right now. It never leaves this device unless you save it. No one else ever sees it.</p><button type="button" class="btn primary" data-act="cutCard" ${O.cutting ? 'disabled' : ''}>${O.cutting ? 'Cutting your key card…' : 'Cut my key card'}</button>` : ''}</li>
+      <li class="${O.noUsdc ? 'todo' : cls(3)}"><h3>3. Save your key card</h3>${s3}</li>
+      <li class="${O.step >= 3 ? 'now' : 'todo'}"><h3>4. Open the box</h3>${O.step >= 3 ? `<p class="sm">Confirm in your wallet. This registers your key card's lock on the box. Fee: about 0.001 USDC, paid to Arc.</p>
+        <button type="button" class="btn primary big" data-act="openBox" ${can4 ? '' : 'disabled'}>Open my box</button>
+        ${O.sending === 'wallet' ? '<p class="status">Waiting for your wallet…</p>' : O.sending === 'confirming' ? '<p class="status">Arc is recording your box…</p>' : ''}${O.err ? `<p class="msg err">${O.err}</p>` : ''}` : ''}</li>
+    </ol></div>`;
+}
+
+/* ----- your box: passbook + emergency ----- */
+const boxRightHTML = () => (S.box ? `<div class="stack">${S.exit ? exitCardHTML() : ''}${ledgerHTML(S.box, 5)}</div>` : '');
+function exitCardHTML() {
+  const E = S.exit, own = E.to === ME_ADDR, L = exitLeft();
+  if (E.ready) return `<section class="card exit-card"><div class="exit-top"><span class="tag">EXIT PENDING</span><span class="cd-big">OPEN</span></div>
+    <h3>The exit is open.</h3><p>${f2(total(S.box))} USDC can now be paid to <span class="mono">${short(E.to)}</span>.</p>
+    <button type="button" class="btn danger big" data-act="payout">Pay out now</button><p class="sm muted">Anyone can press this; the money only ever goes to ${short(E.to)}.</p>
+    <button type="button" class="btn" data-act="exitCancel">Cancel with key card</button></section>`;
+  return `<section class="card exit-card" aria-labelledby="exH">
+    <div class="exit-top"><span class="tag">EXIT PENDING</span><time class="cd cd-big" datetime="${new Date(E.readyAt).toISOString()}">${countdown()}</time></div>
+    <h3 id="exH">Emergency exit pending.</h3>
+    <dl class="exit-dl"><div><dt>Pays everything to</dt><dd><span class="mono">${short(E.to)}</span> ${own ? '· this wallet, the holder\'s own' : '· <b class="warn">not the holder\'s wallet</b>'}</dd></div>
+      <div><dt>Opens</dt><dd>${fmtWhen(E.readyAt)}</dd></div><div><dt>Time left</dt><dd>${L.d} days and ${L.h} hours</dd></div></dl>
+    <p class="sm">Your wallet started a 7-day exit. Why 7 days? So that someone with only your wallet can't empty your box at once. During the wait, your key card can cancel the exit.</p>
+    <p class="sm warn">Didn't start this? Someone may have your wallet. Cancel now with your key card, then withdraw everything to a new wallet.</p>
+    <button type="button" class="btn danger big" data-act="exitCancel">Cancel with key card</button>
+    <p class="sm muted">While an exit is pending, you can still withdraw with both keys.</p></section>`;
+}
+function rowHTML(r) {
+  const amt = r.in ? `+${f2(r.in)}` : r.out ? `−${f2(r.out)}` : '';
+  return `<li><a class="lg-row${r.fresh ? ' fresh' : ''}" href="${txUrl(r.tx)}" target="_blank" rel="noopener" aria-label="${r.d}, ${r.st}, ${esc(r.p)}${amt ? ', ' + amt + ' USDC' : ''}, balance ${f2(r.bal)} USDC. Receipt on Arc's public record.">
+    <span class="c-d">${r.d}</span><span class="c-s"><span class="stamp ${r.ink}">${r.st}</span>${r.st2 ? `<span class="stamp green">${r.st2}</span>` : ''}</span>
+    <span class="c-p">${esc(r.p)}</span><span class="c-in mono">${r.in ? '+' + f2(r.in) : ''}</span><span class="c-out mono">${r.out ? '−' + f2(r.out) : ''}</span><span class="c-b mono">${f2(r.bal)}</span></a></li>`;
+}
+function ledgerHTML(b, limit, flat = false) {
+  const rows = limit ? b.rows.slice(-limit) : b.rows;
+  return `<section class="ledger ${flat ? 'flat' : ''}">
+    ${flat ? '' : `<div class="lg-h"><h3>Passbook · Box No. ${b.no}</h3>${limit ? `<button type="button" class="link sm" data-act="passbook" data-box="${b.demo ? 'demo' : 'mine'}">Passbook${b.rows.length > limit ? ` · all ${b.rows.length}` : ''}</button>` : ''}</div>`}
+    <div class="lg-cols" aria-hidden="true"><span>DATE</span><span>PARTICULARS</span><span>IN</span><span>OUT</span><span>BALANCE</span></div>
+    <ol class="lg-rows">${rows.map(rowHTML).join('')}</ol>
+    ${b.savings > 0 ? `<p class="lg-int">Interest earned in Savings to date: <span class="mono earned-v" data-box="${b.demo ? 'demo' : 'mine'}">${earned(b).toFixed(6)}</span> USDC. Calculated, not a transaction.</p>` : ''}
+    <p class="lg-note">Every line is copied from Arc's public record. Tap a line to see its receipt.</p></section>`;
+}
+/* ===== sheets (the counter window) ===== */
+function openSheet(type, st = {}) {
+  cancelFlows();
+  S.sheet = { type, ...st };
+  if (type === 'deposit') S.sock.drawer = 'ajar';   // the drawer comes out 8px for the slip
+  renderCab(); renderSheet(true);
+}
+function resetSock() { S.sock = { ...S.sock, k1: S.connected ? 'in' : 'none', k2: 'none', i1: 0, i2: 0, turned: 0, bolt: 'thrown', drawer: 'in', rattle: 0 }; }
+function closeSheet() {
+  if (!S.sheet || S.sheet.busy) return;           // never cancel a transaction in flight
+  cancelFlows(); S.sheet = null; resetSock(); render();
+}
+function renderSheet(first) {
+  const sh = $('#sheet'), sc = $('#scrim');
+  if (!S.sheet) { sh.hidden = true; sc.hidden = true; document.body.classList.remove('sheet-open'); return; }
+  const { title, body } = SHEETS[S.sheet.type](S.sheet);
+  $('#sheetTitle').textContent = title; $('#sheetBody').innerHTML = body;
+  $('#sheetX').disabled = !!S.sheet.busy;
+  sh.hidden = false; sc.hidden = false; document.body.classList.add('sheet-open');
+  if (first) { sh.classList.remove('in'); void sh.offsetWidth; if (!NOANIM) sh.classList.add('in'); $('#sheetBody').scrollTop = 0; $('#sheetTitle').focus({ preventScroll: true }); }
+}
+const statusP = (t) => `<p class="status">${t}</p>`;
+const errP = (t) => (t ? `<p class="msg err" role="alert">${t}</p>` : '');
+const riskBlock = () => `<p class="vault sm">Galaxy USDC vault on Morpho</p><p class="sm">${rateLine()}</p><p class="risk sm">Earns by lending through Morpho. Small extra risk.</p>`;
+const amtEcho = (s) => { const a = parseAmt(s); return a.v ? f2(a.v) : '0.00'; };
+
+const SHEETS = {
+  deposit(d) {
+    const A = amtEcho(d.amount), locked = d.phase !== 'amount', done = ['done', 'chWait', 'chConf', 'chLocker', 'chSavings'].includes(d.phase);
+    const slip = `<div class="slip ${done ? 'tall' : ''}"><div class="slip-h"><span>DEPOSIT SLIP</span><span>BOX No. ${S.box.no}</span></div>
+      ${done ? `<p class="slip-l">${A} USDC from ${short(ME_ADDR)}<br>into the Locker</p><span class="stamp big green ${d.stampNew ? 'stamp-in' : ''}">DEPOSITED</span>` : `
+      <label class="fld"><span>How much?</span><span class="amt-wrap"><input class="amt mono" id="amtIn" inputmode="decimal" autocomplete="off" placeholder="0.00" data-bind="amount" value="${esc(d.amount)}" ${locked ? 'readonly' : ''}><span class="unit">USDC</span></span></label>
+      <div class="fld-meta"><span>In your wallet: <span class="mono">${f2(S.walletBal)}</span> USDC</span>${locked ? '' : '<button type="button" class="link sm" data-act="depMax">All but fees</button>'}</div>
+      <p class="sm muted">Keep a little USDC in your wallet for fees: about 0.01 USDC per action.</p>`}</div>`;
+    if (!done) {
+      const s1 = d.phase === 'amount' || d.phase === 's1wait' || d.phase === 's1conf';
+      return { title: 'Make a deposit', body: `<p>Every deposit goes into your Locker first. Then you choose where it stays.</p>${slip}${errP(d.err)}
+        <ol class="steps2">
+          <li class="${s1 ? '' : 'done'}"><p>Step 1 of 2: give the box permission to take <b class="amt-echo mono">${A}</b> USDC.</p>
+            ${d.phase === 'amount' ? '<button type="button" class="btn primary big" data-act="depApprove">Give permission</button>' : d.phase === 's1wait' ? statusP('Waiting for your wallet…') : d.phase === 's1conf' ? statusP('Arc is recording your permission…') : '<p class="okline sm">Permission given. Now the deposit.</p>'}</li>
+          <li class="${s1 ? 'todo' : ''}"><p>Step 2 of 2: deposit <b class="amt-echo mono">${A}</b> USDC.</p>
+            ${d.phase === 's2' ? `<button type="button" class="btn primary big" data-act="depDeposit">Deposit ${A} USDC</button>` : d.phase === 's2wait' ? statusP('Waiting for your wallet…') : d.phase === 's2conf' ? statusP('Arc is recording your deposit…') : ''}</li>
+        </ol>` };
+    }
+    let tail;
+    if (d.phase === 'chLocker') tail = `<p class="okline">Very good. ${A} USDC stays in your Locker.</p><button type="button" class="btn primary big" data-act="closeSheet">Back to my box</button>`;
+    else if (d.phase === 'chSavings') tail = `<p class="okline">Very good. ${A} USDC is in Savings, earning from now.</p><button type="button" class="btn primary big" data-act="closeSheet">Back to my box</button>`;
+    else tail = `<div class="choose"><h3>Keep it in the Locker, or let it earn in Savings?</h3>
+      <div class="ch-cards">
+        <section class="ch"><h4>Locker</h4><p class="sm">Just sits there. Nothing to do. Earns nothing.</p><button type="button" class="btn" data-act="keepLocker" ${d.busy ? 'disabled' : ''}>Keep in Locker</button></section>
+        <section class="ch"><h4>Savings</h4>${riskBlock()}<button type="button" class="btn" data-act="toSavings" ${d.busy ? 'disabled' : ''}>Move to Savings</button><p class="sm muted">One more confirmation in your wallet. No key card needed.</p></section>
+      </div>
+      ${d.phase === 'chWait' ? statusP('Waiting for your wallet…') : d.phase === 'chConf' ? statusP('Arc is moving it into Savings…') : ''}${errP(d.err2)}
+      <details><summary>What Savings does</summary><p>Savings deposits your USDC into the Galaxy USDC vault, a lending vault run on Morpho by a third party. Borrowers pay interest, which the vault passes on. If borrowers or the vault fail, some money could be lost, and sometimes withdrawals wait until funds are repaid. Arc Guard doesn't run the vault.</p></details>
+      <p class="sm muted">You can change your mind anytime from your box.</p></div>`;
+    return { title: 'Make a deposit', body: `${slip}<p class="okline">Deposited. ${A} USDC is in your Locker.</p>${tail}` };
+  },
+
+  move(m) {
+    const b = S.box, A = amtEcho(m.amount), toS = m.dir === 'toSavings', lock = m.busy || m.done;
+    return { title: 'Move between Locker and Savings', body: `<p>Money stays inside your box. Your wallet alone can do this. No key card needed.</p>
+      <div class="seg" role="radiogroup" aria-label="Direction">
+        <label><input type="radio" name="dir" value="toSavings" data-act="moveDir" ${toS ? 'checked' : ''} ${lock ? 'disabled' : ''}>Locker → Savings</label>
+        <label><input type="radio" name="dir" value="toLocker" data-act="moveDir" ${toS ? '' : 'checked'} ${lock ? 'disabled' : ''}>Savings → Locker</label></div>
+      <label class="fld"><span>Amount</span><span class="amt-wrap"><input class="amt mono" id="amtIn" inputmode="decimal" autocomplete="off" placeholder="0.00" data-bind="amount" value="${esc(m.amount)}" ${lock ? 'readonly' : ''}><span class="unit">USDC</span></span></label>
+      <div class="fld-meta"><span>${toS ? `Locker holds <span class="mono">${f2(b.locker)}</span> USDC` : `Savings hold <span class="mono">${f2(b.savings)}</span> USDC`}</span>${lock ? '' : '<button type="button" class="link sm" data-act="moveMax">All</button>'}</div>
+      ${toS ? riskBlock() : ''}${errP(m.err)}
+      ${m.done ? `<p class="okline">${toS ? `Moved. ${A} USDC is now in Savings, earning.` : `Moved. ${A} USDC is back in the Locker.`}</p><button type="button" class="btn primary big" data-act="closeSheet">Back to my box</button>`
+        : `<button type="button" class="btn primary big" data-act="moveGo" ${m.busy ? 'disabled' : ''}>Move <span class="amt-echo">${A}</span> USDC</button>${m.busy === 'wallet' ? statusP('Waiting for your wallet…') : m.busy === 'confirming' ? statusP('Arc is moving it…') : ''}`}` };
+  },
+
+  withdraw(W) {
+    const b = S.box, A = amtEcho(W.amount), from = W.from === 'locker' ? 'Locker' : 'Savings', to = W.to === 'self' ? ME_ADDR : W.other.trim();
+    const slipTop = (stamped) => `<div class="slip ${stamped ? 'tall' : ''}"><div class="slip-h"><span>WITHDRAWAL SLIP</span><span>BOX No. ${b.no}</span></div>
+      <p class="slip-l">${A} USDC from ${from}<br>to ${to.length > 12 ? short(to) : esc(to)} · fee about 0.01 USDC</p>
+      ${stamped ? `<span class="stamp green k2ok">KEY 2 OK</span><span class="stamp big ink ${W.stampNew ? 'stamp-in' : ''}">WITHDRAWN</span>` : W.step === 'keys' && !W.busy ? '<button type="button" class="link sm" style="justify-self:end" data-act="wdChange">Change</button>' : ''}</div>`;
+    if (W.step === 'slip') {
+      const max = W.from === 'locker' ? b.locker : b.savings;
+      return { title: 'Take money out', body: `<p>This needs both keys.</p>
+        <fieldset class="fs"><legend>From</legend>
+          <label class="radio"><input type="radio" name="from" value="locker" data-act="wdFrom" ${W.from === 'locker' ? 'checked' : ''}>From Locker (up to ${f2(b.locker)} USDC)</label>
+          <label class="radio"><input type="radio" name="from" value="savings" data-act="wdFrom" ${W.from === 'savings' ? 'checked' : ''} ${b.savings ? '' : 'disabled'}>From Savings (up to ${f2(b.savings)} USDC)</label></fieldset>
+        <label class="fld"><span>Amount</span><span class="amt-wrap"><input class="amt mono" id="amtIn" inputmode="decimal" autocomplete="off" placeholder="0.00" data-bind="amount" value="${esc(W.amount)}"><span class="unit">USDC</span></span></label>
+        <div class="fld-meta"><span>Up to <span class="mono">${f2(max)}</span> USDC</span><button type="button" class="link sm" data-act="wdMax">All</button></div>
+        <fieldset class="fs"><legend>Send to</legend>
+          <label class="radio"><input type="radio" name="to" value="self" data-act="wdTo" ${W.to === 'self' ? 'checked' : ''}>Your wallet (${short(ME_ADDR)})</label>
+          <label class="radio"><input type="radio" name="to" value="other" data-act="wdTo" ${W.to === 'other' ? 'checked' : ''}>Another address</label></fieldset>
+        ${W.to === 'other' ? `<input class="addr" data-bind="other" placeholder="0x…" value="${esc(W.other)}" aria-label="Recipient address"><p class="sm warn">Check every character. Money sent to the wrong address can't be brought back.</p><label class="cb"><input type="checkbox" data-act="wdOtherOk" ${W.otherOk ? 'checked' : ''}> I checked every character</label>` : ''}
+        ${errP(W.err)}
+        <p class="sm"><b class="amt-echo mono">${A}</b> USDC to ${W.to === 'self' ? short(ME_ADDR) : 'the address above'}. Fee about 0.01 USDC, paid to Arc.</p>
+        <p class="sm muted">Your key card signs a slip for this exact amount and address, valid for 10 minutes. It can't be reused.</p>
+        <button type="button" class="btn primary big" data-act="wdNext">Next: keys</button>` };
+    }
+    if (W.step === 'done') {
+      return { title: 'Take money out', body: `${slipTop(true)}
+        <h3 class="done-h">Both keys turned.</h3><p>${A} USDC sent to ${short(to)}.</p>
+        <p class="sm">Receipt No. <span class="mono">${txShort(W.tx)}</span><br>Left in your box: <b class="mono">${f2(total(b))}</b> USDC</p>
+        <div class="row-btns"><a class="btn primary" id="rcpt" href="${txUrl(W.tx)}" target="_blank" rel="noopener">See it on Arc's public record ↗</a><button type="button" class="btn" data-act="closeSheet">Back to my box</button></div>
+        <details class="dev"><summary>Details for developers</summary><dl class="mono sm">
+          <div><dt>function</dt><dd>withdraw</dd></div><div><dt>gas used</dt><dd>438,912</dd></div><div><dt>fee</dt><dd>0.0088 USDC</dd></div>
+          <div><dt>signature</dt><dd>SLH-DSA-SHA2-128s · 7,856 bytes</dd></div><div><dt>checker</dt><dd>0x1800…0004</dd></div><div><dt>blocked-list check</dt><dd>0x1800…0001</dd></div>
+          <div><dt>block</dt><dd>${(HB.block + 3).toLocaleString('en-US')}</dd></div></dl></details>` };
+    }
+    const signed = W.k2 === 'signed', walletOn = S.sock.i1 === 1;
+    return { title: 'Take money out', body: `${slipTop(false)}
+      <div class="keyplates">
+        <div class="kp ${walletOn ? 'on' : ''} ${S.sock.turned ? 'turned' : ''}"><h3><span class="mini"><i></i></span>Key 1 · your wallet</h3><p class="sm">In the lock: <span class="mono">${short(ME_ADDR)}</span></p></div>
+        <div class="kp ${signed ? 'on' : ''} ${S.sock.turned ? 'turned' : ''}"><h3><span class="mini m2"><i></i></span>Key 2 · your key card</h3>${keyLoaderHTML(W, 'Load your key card to sign this withdrawal.')}</div>
+      </div>
+      ${W.send === 'rejected' ? errP('You cancelled in your wallet. Nothing was sent.') : ''}
+      ${W.send === 'wallet' ? statusP('Turn Key 1: confirm in your wallet…') : W.send === 'confirming' ? statusP('Arc is checking both keys…') : W.send === 'turning' ? statusP('Both keys turning…') : `
+      <button type="button" class="btn primary big" data-act="turnKeys" ${signed ? '' : 'disabled'}>Turn both keys</button><p class="sm muted">Confirm in your wallet. Arc then checks both keys.</p>`}
+      ${signed || W.busy ? '' : '<p class="sm"><button type="button" class="link" data-act="exitStart">Lost your key card?</button></p>'}` };
+  },
+
+  passbook(p) { const b = p.which === 'demo' ? DEMO : S.box; return { title: `Passbook · Box No. ${b.no}`, body: ledgerHTML(b, 0, true) }; },
+
+  plaque() {
+    return { title: 'Why two keys?', body: `<div class="letter"><p>Your wallet proves who you are with one kind of signature. Experts expect that a large enough quantum computer could one day forge it. No such computer exists today.</p>
+      <p>So your box asks for a second key: a key card that signs with <b>SLH-DSA</b>, a hash-based signature published by NIST in 2024 (FIPS 205) and designed to resist quantum computers. Arc checks that signature itself, every time money leaves the box.</p>
+      <p><b>What this means.</b> Someone who gets your wallet, whether by theft today or by quantum computer later, still can't take money out without your key card.</p>
+      <p><b>What it doesn't mean.</b></p><ul><li>If someone gets <b>both</b> your wallet and your key card, they can take everything.</li><li>Someone with only your wallet can <b>start</b> the 7-day emergency exit. You can cancel it with your key card. Check your box at least once a week.</li><li>The box is new software. A bug could lose money.</li><li>Savings lends through Morpho, which adds a small extra risk.</li></ul>
+      <p>Everything here is open source. You can read every line.</p></div>` };
+  },
+
+  exitStart(E) {
+    const b = S.box, to = E.to === 'self' ? ME_ADDR : E.other.trim();
+    if (E.phase !== 'explain') {
+      return { title: 'Lost your key card?', body: `<div class="confirm-box"><h3>Start the exit? In 7 days, ${f2(total(b))} USDC goes to ${short(to)}.</h3>
+        <p class="sm">Opens ${fmtWhen(Date.now() + 7 * 86400e3)}.</p><p class="sm">If you find your card, you can cancel. Anyone holding your key card can cancel too.</p></div>
+        ${errP(E.err)}
+        ${E.phase === 'wallet' ? statusP('Waiting for your wallet…') : E.phase === 'confirming' ? statusP('Arc is recording the exit…') : '<div class="row-btns"><button type="button" class="btn danger big" data-act="exitYes">Yes, start it</button><button type="button" class="btn big" data-act="exitBack">Go back</button></div>'}` };
+    }
+    return { title: 'Lost your key card?', body: `<p class="strong">Your money isn't lost.</p>
+      <p>Start the emergency exit with your wallet alone. After 7 days, everything in your box, Locker and Savings, is paid to the address you choose.</p>
+      <p class="sm muted">Why 7 days? So that someone with only your wallet can't empty your box at once. During the wait, your key card can cancel the exit.</p>
+      <fieldset class="fs"><legend>Pay everything to</legend>
+        <label class="radio"><input type="radio" name="exto" value="self" data-act="exTo" ${E.to === 'self' ? 'checked' : ''}>This wallet (${short(ME_ADDR)})</label>
+        <label class="radio"><input type="radio" name="exto" value="other" data-act="exTo" ${E.to === 'other' ? 'checked' : ''}>Another address</label></fieldset>
+      ${E.to === 'other' ? `<input class="addr" data-bind="other" placeholder="0x…" value="${esc(E.other)}" aria-label="Payout address"><p class="sm warn">Check this address carefully. In 7 days the whole box goes there, and it can't be undone.</p>` : ''}
+      ${errP(E.err)}
+      <p class="sm">If you find your card, you can cancel. Anyone holding your key card can cancel too.</p>
+      <p class="sm muted">After it's paid out, your box is empty. To keep saving here, open a new box with a new card.</p>
+      <button type="button" class="btn danger big" data-act="exitGo">Start 7-day exit</button>
+      <p class="sm">Have your card after all? You don't need this. <button type="button" class="link" data-act="withdraw">Withdraw normally.</button></p>` };
+  },
+
+  exitCancel(C) {
+    if (C.done) return { title: 'Cancel with key card', body: `<div class="slip tall"><div class="slip-h"><span>EMERGENCY EXIT</span><span>BOX No. ${S.box.no}</span></div><p class="slip-l">Cancelled with key card</p><span class="stamp big green ${C.stampNew ? 'stamp-in' : ''}">CANCELLED</span></div>
+      <p class="okline">Exit cancelled. Your box is back to normal.</p><div class="row-btns"><a class="btn" href="${txUrl(C.tx)}" target="_blank" rel="noopener">See it on Arc's public record ↗</a><button type="button" class="btn primary" data-act="closeSheet">Back to my box</button></div>` };
+    const signed = C.k2 === 'signed';
+    return { title: 'Cancel with key card', body: `<p>Load your key card. Anyone can send the cancellation, but only your key card can sign it.</p>
+      <div class="kp ${signed ? 'on' : ''}"><h3><span class="mini m2"><i></i></span>Key 2 · your key card</h3>${keyLoaderHTML(C, 'Load your key card to sign the cancellation.')}</div>
+      ${C.send === 'rejected' ? errP('You cancelled in your wallet. Nothing was sent.') : ''}
+      ${C.send === 'wallet' ? statusP('Waiting for your wallet…') : C.send === 'confirming' ? statusP('Arc is checking your key card…') : `<button type="button" class="btn danger big" data-act="cancelSend" ${signed ? '' : 'disabled'}>Cancel the exit</button>`}` };
+  },
+
+  notice(n) {
+    return { title: n.title, body: `<div class="slip tall"><div class="slip-h"><span>${n.head}</span><span>BOX No. ${S.box.no}</span></div><p class="slip-l">${n.line}</p><span class="stamp big ${n.ink} ${n.stampNew ? 'stamp-in' : ''}">${n.stamp}</span></div>
+      <p class="okline">${n.text}</p><div class="row-btns">${n.tx ? `<a class="btn" href="${txUrl(n.tx)}" target="_blank" rel="noopener">See it on Arc's public record ↗</a>` : ''}<button type="button" class="btn primary" data-act="closeSheet">Back to my box</button></div>` };
+  },
+};
+
+function keyLoaderHTML(K, emptyLine) {
+  const no = S.box ? S.box.no : boxNoOf(ME_ADDR);
+  if (K.k2 === 'signing') return `<p class="okline sm">Card fits. Print A1B2-C3D4, Box No. ${no}.</p>${signingHTML()}<button type="button" class="link sm" style="justify-self:start" data-act="signCancel">Cancel</button>`;
+  if (K.k2 === 'loaded') return `<p class="okline sm">Card fits. Print A1B2-C3D4, Box No. ${no}.</p><button type="button" class="btn" data-act="signAgain">Sign with key card</button>`;
+  if (K.k2 === 'signed') return `<div class="signed"><span class="stamp green">PQ SIGNED</span><p class="sm">Signed. Key 2 is in the lock; both keys turn when Arc accepts.</p><p class="sm muted">7,856-byte signature, made on this device in ${K.signSecs} s. Nothing has been sent yet.</p></div>`;
+  if (K.k2 === 'picking') return `<div class="picker" role="group" aria-label="Choose a file (simulated file picker)"><p class="picker-h">Choose a file <span class="muted">· simulated picker</span></p>
+    <button type="button" class="pick" data-act="pick" data-f="ok">pq-guard-key-card-box-${no}.json</button>
+    <button type="button" class="pick" data-act="pick" data-f="other">pq-guard-key-card-box-2290.json</button>
+    <button type="button" class="pick" data-act="pick" data-f="bad">holiday-photo.jpg</button>
+    <button type="button" class="link sm" data-act="pickCancel">Cancel</button></div>`;
+  if (K.k2 === 'typing') return `<label class="fld"><span class="sm">Card code</span><textarea class="addr" style="height:72px;padding:10px" data-bind="code" placeholder="16 groups of 8 characters">${esc(K.code || '')}</textarea></label>
+    <div class="row-btns"><button type="button" class="btn" data-act="loadTyped">Load card</button><button type="button" class="link sm" data-act="pickCancel">Cancel</button></div>${errP(K.kerr)}`;
+  return `<p class="sm">${emptyLine}</p>
+    <div class="drop" data-drop="1"><p class="sm muted">Drop your key card here, or choose the file</p>
+      <div class="row-btns"><button type="button" class="btn" data-act="pickFile">Choose file</button><button type="button" class="btn" data-act="typeCode">Type card code</button>${S.remembered ? '<button type="button" class="btn" data-act="pick" data-f="ok">Use card on this device</button>' : ''}</div></div>
+    ${errP(K.kerr)}<p class="sm muted">The card stays in this browser. Only the signed slip is sent.</p>`;
+}
+/* ===== choreography ===== */
+async function openDoor(c, setView) {
+  announce('The vault door is opening.');
+  SFX.doorRelease();
+  S.sock.wheel = 'open'; setView(); renderCab();            // interior is ready behind the leaf
+  await c.wait(ms(200));
+  S.sock.door = 'swing'; renderCab();                        // restrained 18° swing, 480 ms
+  await c.wait(ms(480));
+  S.sock.door = 'open'; render();
+}
+async function turnBothKeys(c) {                             // only ever called after a receipt
+  S.sock.turned = 1; renderCab(); SFX.keyTurn(0); if (S.sheet) renderSheet();
+  await c.wait(ms(320));                                     // clunk lands here
+  S.sock.bolt = 'retracted'; renderCab(); SFX.bolt(0);       // bolt retracts 6 px over 160 ms
+  await c.wait(ms(160 + 120));
+  S.sock.drawer = 'out'; renderCab(); SFX.drawerSlide(0);   // drawer slides out, 900 ms
+  await c.wait(ms(900));
+}
+function runSigning(c, K, dur, startAgo = 0) {              // honest estimate curve; never a percentage
+  const t0 = performance.now() - startAgo * 1000, est = isPhone() ? 5 : 1;
+  const loop = () => {
+    if (!c.alive() || (K.k2 !== 'signing' && K.stage !== 'signing')) return;
+    const el = $('.signing');
+    if (el) {
+      const t = (performance.now() - t0) / 1000;
+      el.querySelector('.fill').style.transform = `scaleX(${0.9 * (1 - Math.exp(-t / (est / 2)))})`;
+      el.querySelector('.sign-t').textContent = t.toFixed(1) + ' s';
+      el.querySelector('.sign-msg').textContent = t >= 20 ? 'This is taking longer than usual. You can keep waiting or cancel. Nothing has been sent.' : t >= 8 ? 'Nearly there. Keep this page open.' : t >= 4 ? 'Phones take a few seconds. Still signing.' : t >= 1.5 ? 'Signing takes a moment. This key is built heavy on purpose.' : 'Your key card is signing…';
+    }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+  return c.wait(dur * 1000);
+}
+const signDur = () => (isPhone() ? 4.2 : 0.86);
+function rattle() { S.sock.k2 = 'in'; S.sock.rattle = 1; renderCab(); setTimeout(() => { S.sock.rattle = 0; S.sock.k2 = 'none'; renderCab(); }, 600); }
+
+function loadCard(kind, opts = {}) {
+  const K = S.sheet; if (!K) return;
+  const no = S.box.no;
+  if (kind === 'other') { K.k2 = 'empty'; K.kerr = `This key card is for Box No. 2290, not Box No. ${no}. Nothing was sent.`; renderSheet(); SFX.errorBuzz(); rattle(); return; }
+  if (kind === 'bad') { K.k2 = 'empty'; K.kerr = `That file isn't a Arc Guard key card. Look for pq-guard-key-card-box-${no}.json.`; renderSheet(); SFX.errorBuzz(); return; }
+  flow(async (c) => {
+    K.kerr = null; K.k2 = 'signing'; K.send = 'idle'; S.sock.k2 = 'in'; renderCab(); SFX.keyInsert(); renderSheet();
+    const d = opts.slow ? 1e9 : signDur();
+    await runSigning(c, K, d, opts.slow ? 21 : 0);
+    K.k2 = 'signed'; K.signSecs = d.toFixed(2); S.sock.i2 = 1; renderCab(); SFX.detent(); renderSheet();  // Key 2 earns its detent
+  });
+}
+
+/* ===== actions ===== */
+const ACT = {
+  jumper: openJumper, closeJumper, go: (el) => go(el.dataset.k),
+  sound() { SFX.unlock(); SFX.setSound(!SFX.on); renderChrome(); },
+  plaque: () => openSheet('plaque'),
+  closeSheet,
+  home() { cancelFlows(); reset('landing'); render(); },
+  leaf() { if (S.view === 'landing') ACT.connect(); },
+  why(el) { const w = $('#why'); w.hidden = !w.hidden; el.setAttribute('aria-expanded', String(!w.hidden)); },
+  clearErr() { S.err = null; HB.fail = false; HB.last = Date.now(); render(); },
+  reconnect() { S.err = null; S.connected = true; S.sock.k1 = 'in'; render(); SFX.keyInsert(); },
+  connect() {
+    if (!S.walletFound) { S.landErr = 'noWallet'; renderRight(); SFX.errorBuzz(); return; }
+    if (S.view !== 'landing') { reset('landing'); NOANIM = true; document.documentElement.classList.add('jump'); render(); requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('jump'); NOANIM = false; ACT.connect(); })); return; }
+    flow(async (c) => {
+      S.connecting = true; S.landErr = null; S.sock.wheel = 'hold'; render();   // wheel turns 30° and holds: waiting, not opening
+      const ok = await c.ask({ kind: 'connect', title: 'Connect to Arc Guard', action: 'Connect', rows: [['Account', short(ME_ADDR)], ['Network', 'Arc Mainnet (5042) · added for you'], ['Allows', 'See your address and balances']] });
+      S.connecting = false;
+      if (!ok) { S.sock.wheel = ''; S.landErr = 'rejected'; render(); return; }
+      S.connected = true; S.sock.k1 = 'in'; renderCab(); renderChrome(); SFX.keyInsert();
+      await c.wait(ms(380));
+      await openDoor(c, () => { S.view = 'open'; S.open = { step: 2 }; });
+    });
+  },
+  tour() {
+    if (S.view !== 'landing') { cancelFlows(); S.view = 'tour'; S.tourStep = 1; S.sock = { ...freshSock(), door: 'open' }; render(); return; }
+    flow((c) => openDoor(c, () => { S.view = 'tour'; S.tourStep = 1; S.replay = null; S.practice = null; }));
+  },
+  tourStep(el) { cancelFlows(); S.tourStep = +el.dataset.n; S.replay = null; S.practice = null; S.sock = { ...freshSock(), door: 'open' }; render(); window.scrollTo({ top: 0 }); },
+  practice() { cancelFlows(); S.view = 'practice'; S.practice = null; S.sock = { ...freshSock(), k1: S.connected ? 'in' : 'none' }; render(); },
+  practiceRun: () => flow(async (c) => {
+    const P = S.practice = { stage: 'cutting' }; S.sock.k2 = 'none'; S.sock.i2 = 0; renderCab(); renderRight();
+    await c.wait(600);                                        // keygen ~126 ms, shown over 600 ms
+    P.cut = true; P.stage = 'signing'; S.sock.k2 = 'in'; renderCab(); SFX.keyInsert(); renderRight();
+    const d = signDur(); await runSigning(c, P, d);
+    P.signed = d.toFixed(2); P.stage = 'checking'; S.sock.i2 = 1; renderCab(); SFX.detent(); renderRight();
+    await c.wait(255);
+    P.stage = 'genuine'; renderRight(); SFX.stamp();
+  }),
+  tamper: () => flow(async (c) => {
+    const P = S.practice; P.tampered = true; P.stage = 'checking'; renderRight();
+    await c.wait(255);
+    P.stage = 'refused'; S.sock.i2 = 0; renderRight(); SFX.errorBuzz(); rattle();
+  }),
+  replay: () => flow(async (c) => {
+    const R = S.replay = { stage: 'playing', cap: 1 }; S.sock = { ...freshSock(), door: 'open' }; render();
+    await c.wait(1100);
+    R.cap = 2; S.sock.k2 = 'in'; renderCab(); SFX.keyInsert(); renderRight(); await c.wait(500); S.sock.i2 = 1; renderCab(); SFX.detent();
+    await c.wait(1000);
+    R.cap = 3; S.sock.k1 = 'in'; renderCab(); SFX.keyInsert(); renderRight(); await c.wait(500); S.sock.i1 = 1; renderCab(); SFX.detent();
+    await c.wait(1000);
+    R.cap = 4; renderRight();
+    await turnBothKeys(c);
+    R.stage = 'done'; renderRight(); SFX.stamp(); const l = $('#replayLink'); if (l) l.focus({ preventScroll: true });
+  }),
+  // open a box
+  checkAgain() { S.open.noUsdc = false; renderRight(); },
+  cutCard: () => flow(async (c) => {
+    const O = S.open; O.cutting = true; renderRight();
+    await c.wait(600);
+    O.cutting = false; O.step = 3; O.settle = true; renderRight(); O.settle = false;   // card settles 12 px into its tray
+  }),
+  dl() {
+    const no = boxNoOf(ME_ADDR), blob = new Blob([JSON.stringify({ note: `Arc Guard key card for Box No. ${no}. Keep apart from your wallet. Never share.`, box: no, print: 'A1B2-C3D4', prototype: 'No real key material. Simulated card.' }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `pq-guard-key-card-box-${no}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  },
+  print() { S.open.printed = true; renderRight(); },
+  copyCard() { try { navigator.clipboard.writeText(`ARC GUARD · SAFE DEPOSIT · KEY CARD\nBOX No. ${boxNoOf(ME_ADDR)}\nCARD PRINT A1B2-C3D4\n(prototype: no real key material)`); } catch (e) {} S.open.copied = true; renderRight(); },
+  checkCard: () => flow(async (c) => { await c.wait(500); S.open.checked = true; renderRight(); SFX.detent(); }),
+  skipCheck() { S.open.skipped = true; renderRight(); },
+  savedTick(el) { S.open.saved = el.checked; renderRight(); },
+  rememberTick(el) { S.remembered = el.checked; },
+  openBox: () => flow(async (c) => {
+    const O = S.open; O.sending = 'wallet'; O.err = null; renderRight();
+    const ok = await c.ask({ title: 'Confirm transaction', rows: [['Action', 'Arc Guard · open box'], ['Registers', 'your key card\'s lock'], ['Network fee', '≈ 0.001 USDC']] });
+    if (!ok) { O.sending = null; O.err = 'You cancelled in your wallet. Nothing was sent.'; renderRight(); return; }
+    O.sending = 'confirming'; renderRight(); await c.wait(1200);
+    S.box = makeMine(0, 0); S.box.rows[0].fresh = true; O.sending = null; O.done = true; renderRight(); renderChrome(); SFX.stamp();
+    announce(`Box No. ${S.box.no} is open.`);
+  }),
+  firstDeposit() { S.view = 'box'; S.open = null; render(); ACT.deposit(); },
+  // deposit, then choose
+  deposit() { openSheet('deposit', { phase: 'amount', amount: '' }); setTimeout(() => $('#amtIn') && $('#amtIn').focus(), 50); },
+  depMax() { S.sheet.amount = String(Math.max(0, Math.floor((S.walletBal - 0.05) * 100) / 100)); renderSheet(); },
+  depApprove() {
+    const d = S.sheet, a = parseAmt(d.amount);
+    d.err = a.e || (a.v > S.walletBal ? `You have ${f2(S.walletBal)} USDC in your wallet. Enter that or less.` : null);
+    if (d.err) { renderSheet(); return; }
+    flow(async (c) => {
+      d.phase = 's1wait'; d.busy = true; renderSheet();
+      const ok = await c.ask({ title: 'Give permission', action: 'Approve', rows: [['Allow', `Arc Guard · Box No. ${S.box.no}`], ['To take', `exactly ${f2(a.v)} USDC`], ['Network fee', '≈ 0.001 USDC']] });
+      if (!ok) { d.phase = 'amount'; d.busy = false; d.err = 'You cancelled in your wallet. Nothing was sent.'; renderSheet(); return; }
+      d.phase = 's1conf'; renderSheet(); await c.wait(900);
+      d.phase = 's2'; d.busy = false; renderSheet();
+    });
+  },
+  depDeposit: () => flow(async (c) => {
+    const d = S.sheet, v = parseAmt(d.amount).v; d.err = null;
+    d.phase = 's2wait'; d.busy = true; renderSheet();
+    const ok = await c.ask({ title: 'Confirm transaction', rows: [['Action', 'Arc Guard · deposit'], ['Sends', `${f2(v)} USDC into your box`], ['Network fee', '≈ 0.001 USDC']] });
+    if (!ok) { d.phase = 's2'; d.busy = false; d.err = 'You cancelled in your wallet. Nothing was sent.'; renderSheet(); return; }
+    d.phase = 's2conf'; renderSheet(); await c.wait(1200);
+    S.box.locker = r6(S.box.locker + v); S.walletBal = r6(S.walletBal - v - 0.001);
+    row(S.box, 'DEPOSITED', 'green', `Deposit from ${short(ME_ADDR)}`, v);
+    S.sock.drawer = 'in'; renderCab(); renderBelow();          // only a confirmed deposit moves the drawer 8 px inward
+    d.phase = 'done'; d.stampNew = true; d.busy = false; renderSheet(); d.stampNew = false; SFX.stamp();
+    announce(`Deposited. ${f2(v)} USDC is in your Locker.`);
+  }),
+  keepLocker() { S.sheet.phase = 'chLocker'; renderSheet(); },
+  toSavings: () => flow(async (c) => {
+    const d = S.sheet, v = parseAmt(d.amount).v; d.err2 = null;
+    d.phase = 'chWait'; d.busy = true; renderSheet();
+    const ok = await c.ask({ title: 'Confirm transaction', rows: [['Action', 'Arc Guard · move to Savings'], ['Moves', `${f2(v)} USDC, Locker → Savings`], ['Network fee', '≈ 0.002 USDC']] });
+    if (!ok) { d.phase = 'done'; d.busy = false; d.err2 = 'You cancelled in your wallet. Nothing was sent.'; renderSheet(); return; }
+    d.phase = 'chConf'; renderSheet(); await c.wait(1300);
+    moveFunds(v, 'toSavings'); d.phase = 'chSavings'; d.busy = false; renderSheet();
+  }),
+  // move
+  move() { openSheet('move', { dir: 'toSavings', amount: '' }); },
+  moveDir(el) { S.sheet.dir = el.value; S.sheet.err = null; renderSheet(); },
+  moveMax() { const m = S.sheet; m.amount = String(m.dir === 'toSavings' ? S.box.locker : S.box.savings); renderSheet(); },
+  moveGo() {
+    const m = S.sheet, a = parseAmt(m.amount), max = m.dir === 'toSavings' ? S.box.locker : S.box.savings;
+    m.err = a.e || (a.v > max ? (m.dir === 'toSavings' ? `Your Locker holds ${f2(max)} USDC. Enter that or less.` : `Your Savings hold ${f2(max)} USDC. Enter that or less.`) : null);
+    if (m.err) { renderSheet(); return; }
+    flow(async (c) => {
+      m.busy = 'wallet'; renderSheet();
+      const ok = await c.ask({ title: 'Confirm transaction', rows: [['Action', `Arc Guard · move to ${m.dir === 'toSavings' ? 'Savings' : 'Locker'}`], ['Moves', `${f2(a.v)} USDC`], ['Network fee', '≈ 0.002 USDC']] });
+      if (!ok) { m.busy = false; m.err = 'You cancelled in your wallet. Nothing was sent.'; renderSheet(); return; }
+      m.busy = 'confirming'; renderSheet(); await c.wait(1200);
+      moveFunds(a.v, m.dir); m.busy = false; m.done = true; renderSheet();
+    });
+  },
+  // withdraw: slip -> keys -> receipt
+  withdraw() { openSheet('withdraw', { step: 'slip', from: S.box.locker > 0 ? 'locker' : 'savings', amount: '', to: 'self', other: '', otherOk: false, k2: 'empty', send: 'idle' }); },
+  wdFrom(el) { S.sheet.from = el.value; S.sheet.err = null; renderSheet(); },
+  wdTo(el) { S.sheet.to = el.value; renderSheet(); },
+  wdOtherOk(el) { S.sheet.otherOk = el.checked; },
+  wdMax() { const W = S.sheet; W.amount = String(W.from === 'locker' ? S.box.locker : S.box.savings); renderSheet(); },
+  wdNext() {
+    const W = S.sheet, a = parseAmt(W.amount), max = W.from === 'locker' ? S.box.locker : S.box.savings;
+    W.err = a.e || (a.v > max ? (W.from === 'locker' ? `Your Locker holds ${f2(max)} USDC. Enter that or less.` : `Your Savings hold ${f2(max)} USDC. Enter that or less.`) : null)
+      || (W.to === 'other' && !/^0x[0-9a-fA-F]{40}$/.test(W.other.trim()) ? 'That isn\'t a valid address. Check it and try again.' : null)
+      || (W.to === 'other' && !W.otherOk ? 'Tick "I checked every character" first.' : null)
+      || (S.walletBal < 0.01 ? 'Not enough USDC in your wallet for the fee (about 0.01 USDC). Add a little USDC to your wallet. Nothing was sent.' : null);
+    if (W.err) { renderSheet(); return; }
+    W.step = 'keys'; renderSheet(true);
+  },
+  wdChange() { cancelFlows(); const W = S.sheet; W.step = 'slip'; W.k2 = 'empty'; W.send = 'idle'; S.sock.k2 = 'none'; S.sock.i2 = 0; renderCab(); renderSheet(true); },
+  pickFile() { S.sheet.k2 = 'picking'; S.sheet.kerr = null; renderSheet(); },
+  pickCancel() { S.sheet.k2 = 'empty'; renderSheet(); },
+  pick(el) { loadCard(el.dataset.f); },
+  typeCode() { S.sheet.k2 = 'typing'; S.sheet.kerr = null; renderSheet(); },
+  loadTyped() { const K = S.sheet, s = (K.code || '').replace(/\s/g, ''); if (s.length < 16) { K.kerr = 'The card code doesn\'t check out. Look for a mistyped character in group 1.'; renderSheet(); SFX.errorBuzz(); return; } loadCard('ok'); },
+  signCancel() { cancelFlows(); const K = S.sheet; K.k2 = 'loaded'; renderSheet(); },
+  signAgain() { loadCard('ok'); },
+  turnKeys: () => flow(async (c) => {
+    const W = S.sheet, v = parseAmt(W.amount).v, to = W.to === 'self' ? ME_ADDR : W.other.trim();
+    W.send = 'wallet'; W.busy = true; renderSheet();
+    const ok = await c.ask({ title: 'Confirm transaction', rows: [['Action', 'Arc Guard · withdraw'], ['Sends', `${f2(v)} USDC to ${short(to)}`], ['Key 2', 'PQ signature attached'], ['Network fee', '≈ 0.009 USDC']] });
+    if (!ok) { W.send = 'rejected'; W.busy = false; renderSheet(); SFX.errorBuzz(); return; }   // both keys stay in the locks
+    S.sock.i1 = 1; renderCab(); SFX.detent();                 // Key 1 earns its detent
+    W.send = 'confirming'; renderSheet(); await c.wait(1600);
+    const b = S.box; W.tx = hash();
+    if (W.from === 'locker') b.locker = r6(b.locker - v); else b.savings = r6(b.savings - v);
+    if (to === ME_ADDR) S.walletBal = r6(S.walletBal + v - 0.009);
+    row(b, 'WITHDRAWN', 'ink', `Paid to ${short(to)}`, 0, v, { st2: 'KEY 2 OK', tx: W.tx });
+    W.send = 'turning'; renderSheet(); renderBelow();
+    await turnBothKeys(c);                                    // receipt first, then the keys turn
+    W.step = 'done'; W.stampNew = true; W.busy = false; renderSheet(true); W.stampNew = false; SFX.stamp();
+    const l = $('#rcpt'); if (l) l.focus({ preventScroll: true });
+    announce(`Both keys turned. ${f2(v)} USDC sent.`);
+  }),
+  // emergency exit
+  exitStart() { if (!S.box) { S.connected = true; S.box = makeMine(20, 30); S.view = 'box'; S.sock = { ...freshSock(), door: 'open', k1: 'in' }; render(); } openSheet('exitStart', { phase: 'explain', to: 'self', other: '' }); },
+  exTo(el) { S.sheet.to = el.value; renderSheet(); },
+  exitGo() { const E = S.sheet; if (E.to === 'other' && !/^0x[0-9a-fA-F]{40}$/.test(E.other.trim())) { E.err = 'That isn\'t a valid address. The whole box would go there, so check it and try again.'; renderSheet(); return; } E.err = null; E.phase = 'confirm'; renderSheet(true); },
+  exitBack() { S.sheet.phase = 'explain'; renderSheet(true); },
+  exitYes: () => flow(async (c) => {
+    const E = S.sheet, to = E.to === 'self' ? ME_ADDR : E.other.trim();
+    E.phase = 'wallet'; E.busy = true; renderSheet();
+    const ok = await c.ask({ title: 'Confirm transaction', rows: [['Action', 'Arc Guard · start emergency exit'], ['Pays out', `in 7 days, to ${short(to)}`], ['Network fee', '≈ 0.001 USDC']] });
+    if (!ok) { E.phase = 'confirm'; E.busy = false; E.err = 'You cancelled in your wallet. Nothing was sent.'; renderSheet(); return; }
+    E.phase = 'confirming'; renderSheet(); await c.wait(1300);
+    const readyAt = Date.now() + 7 * 86400e3;
+    S.exit = { to, readyAt, ready: false };
+    row(S.box, 'EXIT STARTED', 'red', `Emergency exit to ${short(to)} · opens ${dshort(new Date(readyAt))}`);
+    E.busy = false; S.sheet = null; resetSock(); render(); window.scrollTo({ top: 0 }); SFX.emergencyBell();
+    announce(`Emergency exit started. Opens ${fmtWhen(readyAt)}.`);
+  }),
+  exitCancel() { openSheet('exitCancel', { k2: 'empty', send: 'idle' }); },
+  cancelSend: () => flow(async (c) => {
+    const C = S.sheet; C.send = 'wallet'; C.busy = true; renderSheet();
+    const ok = await c.ask({ title: 'Confirm transaction', rows: [['Action', 'Arc Guard · cancel the exit'], ['Key 2', 'PQ signature attached'], ['Network fee', '≈ 0.009 USDC']] });
+    if (!ok) { C.send = 'rejected'; C.busy = false; renderSheet(); SFX.errorBuzz(); return; }
+    C.send = 'confirming'; renderSheet(); await c.wait(1400);
+    C.tx = hash(); row(S.box, 'CANCELLED', 'green', 'Emergency exit cancelled with key card', 0, 0, { tx: C.tx });
+    S.exit = null; C.busy = false; C.done = true; C.stampNew = true; renderChrome(); renderCab(); renderBelow(); renderRight(); renderSheet(); C.stampNew = false; SFX.emergencyBell(); SFX.stamp(0.2);
+    announce('Exit cancelled. Your box is back to normal.');
+  }),
+  payout: () => flow(async (c) => {
+    const to = S.exit.to, amt = total(S.box);
+    const ok = await c.ask({ title: 'Confirm transaction', rows: [['Action', 'Arc Guard · pay out exit'], ['Pays', `${f2(amt)} USDC to ${short(to)}`], ['Network fee', '≈ 0.001 USDC']] });
+    if (!ok) return;
+    await c.wait(1300);
+    const tx = hash(); S.box.locker = 0; S.box.savings = 0; paintCoins(0);
+    row(S.box, 'EXIT PAID', 'red', `Emergency exit paid to ${short(to)}`, 0, amt, { tx });
+    S.exit = null; render();
+    openSheet('notice', { title: 'Emergency exit', head: 'EMERGENCY EXIT', line: `${f2(amt)} USDC paid to ${short(to)}`, stamp: 'EXIT PAID', ink: 'red', stampNew: true, text: `Exit paid. ${f2(amt)} USDC sent to ${short(to)}. Your box is now empty.`, tx });
+    SFX.stamp();
+  }),
+  passbook(el) { openSheet('passbook', { which: el.dataset.box || 'mine' }); },
+};
+function moveFunds(v, dir) {
+  const b = S.box;
+  if (dir === 'toSavings') { b.locker = r6(b.locker - v); b.savings = r6(b.savings + v); b.savedAt = b.savedAt || Date.now(); row(b, 'SAVED', 'brass', `Locker → Savings · ${f2(v)}`); paintCoins(b.savings, true); }
+  else { b.savings = r6(b.savings - v); b.locker = r6(b.locker + v); row(b, 'TO LOCKER', 'brass', `Savings → Locker · ${f2(v)}`); }
+  renderCab(); renderBelow();
+}
+
+/* ===== screen jumper: press ? ===== */
+function reset(view) {
+  cancelFlows();
+  Object.assign(S, { view, walletFound: true, connected: false, connecting: false, landErr: null, box: null, walletBal: 124.5, tourStep: 1, practice: null, replay: null, open: null, sheet: null, exit: null, err: null, sock: freshSock() });
+  HB.fail = false; HB.last = Date.now();
+}
+function mine(l, s) { S.view = 'box'; S.connected = true; S.box = makeMine(l, s); S.sock = { ...freshSock(), door: 'open', k1: 'in' }; }
+const wd = (o) => ({ type: 'withdraw', step: 'keys', from: 'locker', amount: '5', to: 'self', other: '', otherOk: false, k2: 'empty', send: 'idle', ...o });
+const signedSock = () => ({ k2: 'in', i2: 1 });
+let LATER = null;
+const JUMP = {
+  'landing': () => reset('landing'),
+  'landing-nowallet': () => { reset('landing'); S.walletFound = false; },
+  'connecting': () => { reset('landing'); LATER = () => ACT.connect(); },
+  'door': () => { reset('landing'); LATER = () => ACT.tour(); },
+  'tour1': () => { reset('tour'); S.sock.door = 'open'; },
+  'tour2': () => { reset('tour'); S.tourStep = 2; S.sock.door = 'open'; },
+  'tour2-replay': () => { reset('tour'); S.tourStep = 2; S.replay = { stage: 'done', cap: 4 }; Object.assign(S.sock, { door: 'open', k1: 'in', k2: 'in', i1: 1, i2: 1, turned: 1, bolt: 'retracted', drawer: 'out' }); },
+  'tour3': () => { reset('tour'); S.tourStep = 3; S.sock.door = 'open'; },
+  'tour4': () => { reset('tour'); S.tourStep = 4; S.sock.door = 'open'; },
+  'practice': () => reset('practice'),
+  'practice-genuine': () => { reset('practice'); S.practice = { stage: 'genuine', cut: true, signed: '0.86' }; Object.assign(S.sock, signedSock()); },
+  'practice-refused': () => { reset('practice'); S.practice = { stage: 'refused', cut: true, signed: '0.86', tampered: true }; S.sock.k2 = 'in'; },
+  'open2': () => { reset('open'); S.connected = true; S.open = { step: 2 }; Object.assign(S.sock, { door: 'open', k1: 'in' }); },
+  'open3': () => { reset('open'); S.connected = true; S.open = { step: 3 }; Object.assign(S.sock, { door: 'open', k1: 'in' }); },
+  'open4': () => { reset('open'); S.connected = true; S.open = { step: 3, saved: true, checked: true }; Object.assign(S.sock, { door: 'open', k1: 'in' }); LATER = () => ACT.openBox(); },
+  'opendone': () => { reset('open'); S.connected = true; S.open = { step: 4, done: true }; S.box = makeMine(0, 0); Object.assign(S.sock, { door: 'open', k1: 'in' }); },
+  'box-empty': () => { reset('box'); mine(0, 0); },
+  'box-locker': () => { reset('box'); mine(25, 0); },
+  'box-both': () => { reset('box'); mine(20, 30); },
+  'passbook': () => { reset('box'); mine(20, 30); S.sheet = { type: 'passbook', which: 'mine' }; },
+  'dep-amount': () => { reset('box'); mine(0, 0); S.sheet = { type: 'deposit', phase: 'amount', amount: '' }; S.sock.drawer = 'ajar'; },
+  'dep-wallet': () => { reset('box'); mine(0, 0); S.sheet = { type: 'deposit', phase: 'amount', amount: '25' }; S.sock.drawer = 'ajar'; LATER = () => ACT.depApprove(); },
+  'dep-done': () => { reset('box'); mine(25, 0); S.sheet = { type: 'deposit', phase: 'done', amount: '25' }; },
+  'move': () => { reset('box'); mine(20, 30); S.sheet = { type: 'move', dir: 'toSavings', amount: '10' }; },
+  'wd-slip': () => { reset('box'); mine(20, 30); S.sheet = wd({ step: 'slip', amount: '' }); },
+  'wd-keys': () => { reset('box'); mine(20, 30); S.sheet = wd({}); },
+  'wd-signing': () => { reset('box'); mine(20, 30); S.sheet = wd({}); LATER = () => loadCard('ok'); },
+  'wd-slow': () => { reset('box'); mine(20, 30); S.sheet = wd({}); LATER = () => loadCard('ok', { slow: true }); },
+  'wd-wrong': () => { reset('box'); mine(20, 30); S.sheet = wd({ kerr: `This key card is for Box No. 2290, not Box No. ${boxNoOf(ME_ADDR)}. Nothing was sent.` }); },
+  'wd-signed': () => { reset('box'); mine(20, 30); S.sheet = wd({ k2: 'signed', signSecs: '0.86' }); Object.assign(S.sock, signedSock()); },
+  'wd-wallet': () => { reset('box'); mine(20, 30); S.sheet = wd({ k2: 'signed', signSecs: '0.86' }); Object.assign(S.sock, signedSock()); LATER = () => ACT.turnKeys(); },
+  'wd-rejected': () => { reset('box'); mine(20, 30); S.sheet = wd({ k2: 'signed', signSecs: '0.86', send: 'rejected' }); Object.assign(S.sock, signedSock()); },
+  'wd-done': () => { reset('box'); mine(15, 30); const tx = hash(); row(S.box, 'WITHDRAWN', 'ink', `Paid to ${short(ME_ADDR)}`, 0, 5, { st2: 'KEY 2 OK', tx }); S.box.rows[S.box.rows.length - 1].fresh = false; S.box.rows.forEach((r, i) => { if (r.st === 'DEPOSITED') { r.in = 20; r.bal = 20; } if (r.st === 'SAVED') r.bal = 20; }); S.box.locker = 15; S.box.rows[S.box.rows.length - 1].bal = 45; S.sheet = wd({ step: 'done', tx }); Object.assign(S.sock, { k2: 'in', i1: 1, i2: 1, turned: 1, bolt: 'retracted', drawer: 'out' }); },
+  'exit-start': () => { reset('box'); mine(20, 30); S.sheet = { type: 'exitStart', phase: 'explain', to: 'self', other: '' }; },
+  'exit-pending': () => { reset('box'); mine(20, 30); S.exit = { to: ME_ADDR, readyAt: Date.now() + 7 * 86400e3 - 3 * 3600e3, ready: false }; row(S.box, 'EXIT STARTED', 'red', `Emergency exit to ${short(ME_ADDR)} · opens ${dshort(new Date(S.exit.readyAt))}`); },
+  'exit-cancel': () => { JUMP['exit-pending'](); S.sheet = { type: 'exitCancel', k2: 'empty', send: 'idle' }; },
+  'exit-ready': () => { reset('box'); mine(20, 30); S.exit = { to: ME_ADDR, readyAt: Date.now() - 60e3, ready: true }; row(S.box, 'EXIT STARTED', 'red', `Emergency exit to ${short(ME_ADDR)} · opens ${dshort()}`); },
+  'err-nousdc': () => { reset('open'); S.connected = true; S.open = { step: 2, noUsdc: true }; Object.assign(S.sock, { door: 'open', k1: 'in' }); },
+  'err-network': () => { reset('box'); mine(20, 30); S.err = 'network'; },
+  'err-rpc': () => { reset('box'); mine(20, 30); S.err = 'rpc'; HB.fail = true; HB.last = Date.now() - 42000; },
+  'err-disconnected': () => { reset('box'); mine(20, 30); S.err = 'disconnected'; S.connected = false; S.sock.k1 = 'none'; },
+  'err-notcard': () => { reset('box'); mine(20, 30); S.sheet = wd({ kerr: `That file isn't a Arc Guard key card. Look for pq-guard-key-card-box-${boxNoOf(ME_ADDR)}.json.` }); },
+  'err-rejected': () => JUMP['wd-rejected'](),
+  'err-nowallet': () => { reset('landing'); S.walletFound = false; S.landErr = 'noWallet'; },
+};
+const JUMPS = [
+  ['Landing', [['landing', 'Landing · wallet found'], ['landing-nowallet', 'Landing · no wallet'], ['connecting', 'Open the door · waiting for wallet'], ['door', 'Door opening (animated)']]],
+  ['See a real box', [['tour1', '① Box, view only'], ['tour2', '② Two keys'], ['tour2-replay', '② Replay done · WITHDRAWN'], ['tour3', '③ Passbook'], ['tour4', '④ Lost card + end card']]],
+  ['Try Key 2 yourself', [['practice', 'Practice · start'], ['practice-genuine', 'Practice · GENUINE'], ['practice-refused', 'Practice · REFUSED']]],
+  ['Open a box + key card', [['open2', 'Step 2 · cut key card'], ['open3', 'Step 3 · key card in tray'], ['open4', 'Step 4 · waiting for wallet'], ['opendone', 'Box open · OPENED']]],
+  ['Your box', [['box-empty', 'Box · empty'], ['box-locker', 'Box · Locker only'], ['box-both', 'Box · Locker + Savings'], ['passbook', 'Passbook']]],
+  ['Deposit → choose', [['dep-amount', 'Deposit · amount slip'], ['dep-wallet', 'Deposit · waiting for wallet'], ['dep-done', 'DEPOSITED → Locker or Savings?'], ['move', 'Move between compartments']]],
+  ['Withdraw · two keys', [['wd-slip', 'Slip'], ['wd-keys', 'Keys · load key card'], ['wd-signing', 'Signing'], ['wd-slow', 'Signing slow (20 s+)'], ['wd-wrong', 'Wrong card'], ['wd-signed', 'PQ SIGNED · ready to turn'], ['wd-wallet', 'Turn both keys · wallet'], ['wd-rejected', 'Cancelled in wallet'], ['wd-done', 'WITHDRAWN · receipt']]],
+  ['Emergency exit', [['exit-start', 'Start 7-day exit'], ['exit-pending', 'Exit pending (takes over)'], ['exit-cancel', 'Cancel with key card'], ['exit-ready', 'Exit open · Pay out now']]],
+  ['Errors', [['err-nousdc', 'No USDC on Arc'], ['err-network', 'Wrong network'], ['err-rpc', 'Can\'t reach Arc'], ['err-disconnected', 'Wallet disconnected'], ['err-notcard', 'Not a key card'], ['err-rejected', 'Cancelled in wallet'], ['err-nowallet', 'No wallet found']]],
+];
+function openJumper() {
+  const j = $('#jumper');
+  j.innerHTML = `<div class="jp-in"><div class="jp-h"><h2>Screens</h2><button type="button" class="x" data-act="closeJumper" aria-label="Close">×</button></div>
+    <p class="sm muted">Jump to any screen or state. Press ? anytime, Esc to close. Wallet and chain calls are simulated.</p>
+    <div class="jp-grid">${JUMPS.map(([g, it]) => `<section><h3>${g}</h3>${it.map(([k, l]) => `<button type="button" class="jp-b" data-act="go" data-k="${k}">${l}</button>`).join('')}</section>`).join('')}</div></div>`;
+  j.hidden = false; j.querySelector('.jp-b').focus();
+}
+function closeJumper() { $('#jumper').hidden = true; }
+function go(k) {
+  closeJumper(); LATER = null;
+  NOANIM = true; document.documentElement.classList.add('jump');
+  JUMP[k](); render(); window.scrollTo({ top: 0 });
+  requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('jump'); NOANIM = false; if (LATER) { const f = LATER; LATER = null; f(); } }));
+}
+
+/* ===== events ===== */
+document.addEventListener('pointerdown', () => SFX.unlock(), { once: true });
+document.addEventListener('click', (e) => {
+  const w = e.target.closest('[data-wal]'); if (w) { closeWallet(w.dataset.wal === '1'); return; }
+  const j = $('#jumper'); if (!j.hidden && e.target === j) { closeJumper(); return; }
+  const a = e.target.closest('[data-act]'); if (!a || a.disabled) return;
+  const fn = ACT[a.dataset.act]; if (!fn) return;
+  if (a.tagName === 'A' && a.getAttribute('href') === '#') e.preventDefault();
+  SFX.unlock(); fn(a, e);
+});
+document.addEventListener('input', (e) => {
+  const k = e.target.dataset.bind; if (!k || !S.sheet) return;
+  S.sheet[k] = e.target.value;
+  if (k === 'amount') { const A = amtEcho(e.target.value); $$('.amt-echo').forEach((el) => (el.textContent = A)); }
+});
+document.addEventListener('keydown', (e) => {
+  SFX.unlock();
+  const typing = /INPUT|TEXTAREA/.test(e.target.tagName);
+  if (e.key === '?' && !typing) { e.preventDefault(); $('#jumper').hidden ? openJumper() : closeJumper(); }
+  if (e.key === 'Escape') { if (!$('#jumper').hidden) closeJumper(); else if (!$('#wallet').hidden) closeWallet(false); else closeSheet(); }
+});
+document.addEventListener('dragover', (e) => { const d = e.target.closest && e.target.closest('[data-drop]'); if (d) { e.preventDefault(); d.classList.add('over'); } });
+document.addEventListener('drop', (e) => {
+  const d = e.target.closest && e.target.closest('[data-drop]'); if (!d) return; e.preventDefault();
+  const f = e.dataTransfer.files[0]; if (!f) return;
+  const m = /pq-guard-key-card-box-(\d{4})\.json$/.exec(f.name);
+  loadCard(!m ? 'bad' : m[1] === S.box.no ? 'ok' : 'other');
+});
+RM.addEventListener('change', () => render());
+
+render();
+})();
+</script>
+</body>
+</html>

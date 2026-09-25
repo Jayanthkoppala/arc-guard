@@ -1,4 +1,4 @@
-# PQ Guard — design spec (2026-09-25)
+# Arc Guard — design spec (2026-09-25)
 
 ## What it is
 A USDC safe deposit box on Arc mainnet. The box has two compartments:

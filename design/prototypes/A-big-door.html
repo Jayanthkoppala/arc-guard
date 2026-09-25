@@ -1,0 +1,1325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arc Guard: a safe deposit box for your digital dollars</title>
+<meta name="description" content="Keep USDC on Arc behind two keys: your wallet, and a key card built to resist quantum computers. Locker or Savings. Open source.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0E1512; --baize:#1F3B2E; --steel:#8A949A; --steel-hi:#C9D1D4; --brass:#B8893B; --brass-hi:#E2C07A; --ivory:#F2EAD7; --ink:#1E1B16;
+  --steel-900:#1B1E21; --steel-700:#3A4046; --green-900:#0F2A1F; --brass-700:#6B5021; --paper-100:#F6EFDC; --paper-200:#EDE3C8; --paper-300:#DCCDA6; --ink-700:#4A4034;
+  --stamp-red:#A8322D; --stamp-blue:#2B4C8C; --success:#2E6B3A; --warn-dark:#E3AE45; --danger:#B3261E; --danger-dark:#E8837A;
+  --lamp:255 185 87;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .25 0 0 0 0 .14 .55 0 0 0 -.18'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --mottle:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.02' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .34 0 0 0 0 .16 .45 0 0 0 -.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --brush:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='200'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.003 .95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 .5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
+  --ink-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 8 0 0 0 -2.4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+  --f-cap:"Cinzel", serif; --f-body:"Libre Caslon Text", Georgia, serif; --f-num:"Courier Prime", "Courier New", monospace;
+  --ease-door:cubic-bezier(0.70,0,0.20,1); --ease-bolt:cubic-bezier(0.55,0,0.90,0.45); --ease-drawer:cubic-bezier(0.45,0,0.15,1);
+  --ease-press:cubic-bezier(0.55,0,1,0.45); --ease-lift:cubic-bezier(0.20,0,0.20,1); --ease-turn:cubic-bezier(0.50,0.05,0.85,0.40);
+  --ease-fall:cubic-bezier(0.50,0,1,0.60); --ease-fill:cubic-bezier(0.25,0.10,0.25,1); --ease-settle:cubic-bezier(0.20,0,0,1);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ivory);font:17px/1.55 var(--f-body);font-variant-numeric:tabular-nums;font-synthesis:none;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;background:radial-gradient(ellipse 65% 50% at 50% -8%,rgb(var(--lamp)/.26),rgb(var(--lamp)/.08) 45%,transparent 72%),radial-gradient(ellipse 110% 85% at 50% 42%,transparent 48%,rgb(0 0 0/.6) 100%),var(--grain);background-size:auto,auto,220px}
+@media (prefers-reduced-motion:no-preference){body::before{animation:lamp 7s ease-in-out infinite alternate}}
+@keyframes lamp{from{opacity:1}to{opacity:.93}}
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+a{color:var(--brass-hi)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid #E4CB8C;outline-offset:3px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:48px;padding:0 1.3em;border-radius:6px;cursor:pointer;font:700 17px/1.1 var(--f-body);text-decoration:none;border:1px solid transparent;transition:transform 80ms var(--ease-press)}
+.btn:active{transform:translateY(2px)}
+.brass{position:relative;overflow:hidden;isolation:isolate;color:var(--green-900);border-color:#8A6A2A;background:linear-gradient(180deg,#EAD49A 0%,#C9A45A 40%,#B08D3C 60%,#D6B66E 100%);text-shadow:0 1px 0 rgb(255 248 220/.45);box-shadow:inset 0 1px 0 rgb(255 255 255/.6),inset 0 -2px 0 rgb(0 0 0/.18),0 1px 0 var(--brass-700),0 4px 10px rgb(0 0 0/.4)}
+.brass::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,transparent 38%,rgb(255 250 230/.65) 50%,transparent 62%);transform:translateX(-120%)}
+@media (prefers-reduced-motion:no-preference){.brass::after{transition:transform 900ms cubic-bezier(.2,.6,.2,1)}.brass:hover::after,.brass:focus-visible::after{transform:translateX(120%)}}
+.ghost{background:rgb(14 21 18/.55);color:var(--brass-hi);border-color:var(--brass)}
+.ghost:hover{background:rgb(184 137 59/.14)}
+.btn[disabled]{opacity:.42;cursor:not-allowed;transform:none}
+.big{min-height:56px;font-size:18px;width:100%}
+.link{background:none;border:0;padding:6px 0;color:var(--brass-hi);text-decoration:underline;text-underline-offset:3px;cursor:pointer;font:inherit}
+.paper .link,.paper a:not(.btn){color:var(--brass-700)}
+.paper .ghost{background:transparent;color:var(--brass-700);border-color:var(--brass-700)}
+.paper{color-scheme:light;color:var(--ink);background:radial-gradient(ellipse 90% 60% at 50% 0%,rgb(var(--lamp)/.16),transparent 70%),radial-gradient(ellipse 100% 100% at 50% 50%,transparent 62%,rgb(120 90 40/.16) 100%),var(--mottle),var(--grain),var(--paper-100);background-size:auto,auto,480px,220px,auto;border-radius:3px;box-shadow:0 1px 0 var(--paper-300),0 12px 28px rgb(0 0 0/.45)}
+.steel{color:var(--ink);background:var(--brush),linear-gradient(180deg,#C4CACE 0%,#B3BABF 45%,#9AA2A8 55%,#B9C0C4 100%);background-size:600px 200px,auto;background-blend-mode:overlay,normal;border:1px solid var(--steel-700);box-shadow:inset 0 1px 0 rgb(255 255 255/.6),inset 0 -1px 0 rgb(0 0 0/.25),0 2px 0 var(--steel-900),0 8px 18px rgb(0 0 0/.45)}
+.engraved{color:var(--ink);text-shadow:0 1px 0 rgb(255 255 255/.5),0 -1px 0 rgb(0 0 0/.25)}
+.stamp{--ink:var(--stamp-blue);display:inline-block;padding:.28em .55em;color:var(--ink);border:4px double var(--ink);border-radius:5px;font:700 1.2rem/1 var(--f-num);letter-spacing:.14em;text-transform:uppercase;opacity:.88;mix-blend-mode:multiply;-webkit-mask-image:var(--ink-mask);mask-image:var(--ink-mask);-webkit-mask-size:160px;mask-size:160px;white-space:nowrap}
+.stamp.sm{font-size:.74rem;border-width:3px;padding:.2em .45em;line-height:1}
+.s-green{--ink:var(--success)}.s-red{--ink:var(--stamp-red)}.s-brass{--ink:var(--brass-700)}.s-ink{--ink:#1E1B16}
+.stamp.sm{-webkit-mask-image:none;mask-image:none;opacity:.8}
+#sheet h2:focus,#sheet h2:focus-visible{outline:none}
+.tag{display:inline-block;color:var(--paper-100);background:var(--danger);font:700 15px/1 var(--f-num);letter-spacing:.1em;padding:.5em .9em .5em 1.5em;clip-path:polygon(14px 0,100% 0,100% 100%,14px 100%,0 50%);box-shadow:inset 0 -2px 0 rgb(0 0 0/.2);transform-origin:0 50%}
+@media (forced-colors:active){.stamp{-webkit-mask-image:none;mask-image:none;mix-blend-mode:normal;opacity:1}.tag{clip-path:none;border:2px solid}}
+.ribbon{display:flex;justify-content:center;align-items:center;gap:14px;font:700 11px/22px var(--f-num);letter-spacing:.12em;color:#1E1B16;background:repeating-linear-gradient(135deg,#E3AE45 0 14px,#d9a23a 14px 28px);height:22px}
+.ribbon button{font:700 11px/18px var(--f-num);letter-spacing:.1em;border:1px solid #1E1B16;border-radius:9px;background:#f6efdc99;padding:0 8px;cursor:pointer;color:#1E1B16}
+#top{position:sticky;top:0;z-index:30}
+#banner:empty{display:none}
+.bn{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;padding:10px 18px;font-size:16px;text-align:center}
+.bn-exit{background:var(--danger);color:var(--paper-100);font-weight:700}
+.bn-warn{background:#3d2f10;color:var(--warn-dark);border-bottom:1px solid #6b5021}
+.bn-grey{background:#2a2f31;color:#d9dde0}
+.bn-tour{background:var(--ink);color:var(--ivory);font:700 13px/1.2 var(--f-num);letter-spacing:.14em;padding:8px}
+#hdr{height:64px;display:flex;align-items:center;gap:14px;padding:0 24px;background:linear-gradient(180deg,#0a100d,rgb(14 21 18/.92));border-bottom:1px solid #26332c}
+.nameplate{font:700 14px/1 var(--f-cap);letter-spacing:.2em;padding:10px 14px 9px;border-radius:3px;color:#2a1d08;background:linear-gradient(180deg,#EAD49A,#C9A45A 45%,#B08D3C 60%,#D6B66E);box-shadow:inset 0 1px 0 #fff9,0 2px 6px #0008;text-shadow:0 1px 0 rgb(255 248 220/.5);white-space:nowrap;border:0;cursor:pointer}
+.hdr-mid{flex:1;display:flex;justify-content:center;min-width:0}
+.boxplate{font:700 13px/1 var(--f-cap);letter-spacing:.18em;color:var(--brass-hi)}
+.chip{font:14px/1 var(--f-num);color:var(--steel-hi);border:1px solid #33413a;border-radius:20px;padding:8px 12px;white-space:nowrap}
+.snd{min-height:40px;padding:0 12px;border-radius:20px;border:1px solid var(--brass);background:transparent;color:var(--brass-hi);font:13px var(--f-num);cursor:pointer;white-space:nowrap}
+footer{max-width:1200px;margin:40px auto 0;padding:24px 24px 90px;border-top:1px solid #26332c;color:#cfd5d2;font-size:15px}
+footer p{margin:0 0 10px}
+footer nav{display:flex;flex-wrap:wrap;gap:6px 18px}
+/* landing + door */
+.landing{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:28px 48px;align-items:center;max-width:1340px;margin:0 auto;padding:8px 32px 0;min-height:calc(100vh - 86px)}
+.vault{position:relative;width:min(calc(100vh - 110px),58vw,820px);aspect-ratio:1;margin:0 auto;perspective:1600px;container-type:inline-size}
+.frame{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 210deg,#2c3237,#646d74 12%,#23282b 28%,#4e575d 48%,#1e2326 64%,#5b646b 82%,#2c3237);box-shadow:0 40px 90px #000d,inset 0 0 0 3px #0009,inset 0 0 50px #000c}
+.frame::after{content:"";position:absolute;inset:1.4%;border-radius:50%;border:2px solid rgb(255 255 255/.08)}
+.hinge{position:absolute;left:1%;width:5.5%;height:9%;border-radius:8px;background:linear-gradient(90deg,#2a3034,#8d969c 45%,#3a4046);box-shadow:0 4px 10px #000a}
+.beyond{position:absolute;inset:5.3%;border-radius:50%;overflow:hidden;opacity:.55;background:radial-gradient(circle at 50% 42%,#ffe2b0 0%,#ffb957 20%,#a9681e 46%,#2a1606 80%,#120a03 100%)}
+.beyond::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 30px,rgb(40 22 6/.55) 30px 33px),repeating-linear-gradient(0deg,transparent 0 22px,rgb(40 22 6/.55) 22px 25px);opacity:.55}
+.door{position:absolute;inset:0;transform-origin:6% 50%}
+.door>*{position:absolute}
+.bolts,.face{inset:0;width:100%;height:100%}
+.face{pointer-events:none}
+.bolt{fill:url(#boltg);stroke:#1b1e21;stroke-width:2}
+.spun{inset:6%;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,rgb(255 255 255/.06) 0 1px,rgb(0 0 0/.06) 1px 2px),conic-gradient(from 20deg,#8E969D,#E3E7EA 12%,#9AA2A8 25%,#C4CACE 38%,#7F878E 50%,#E3E7EA 62%,#9AA2A8 75%,#C4CACE 88%,#8E969D);box-shadow:inset 0 0 0 10px var(--steel-700),inset 0 0 0 12px #C4CACE,inset 0 0 40px rgb(0 0 0/.45),0 24px 60px rgb(0 0 0/.65)}
+.wheel{left:36%;top:36%;width:28%;height:28%;cursor:grab;touch-action:none;border-radius:50%;filter:drop-shadow(0 8px 10px rgb(0 0 0/.55))}
+.wheel:active{cursor:grabbing}
+.plaque-main{left:29%;right:29%;top:70.5%;height:11.5%;display:grid;place-items:center;text-align:center;padding:0 3%;font:700 2.7cqw/1.18 var(--f-cap);letter-spacing:.05em;color:#2a1d08;border-radius:4px;background:linear-gradient(180deg,#EAD49A 0%,#C9A45A 40%,#B08D3C 60%,#D6B66E 100%);box-shadow:inset 0 1px 0 #fffa,inset 0 -2px 0 #0003,0 3px 8px #0009;text-shadow:0 1px 0 rgb(255 248 220/.55)}
+.doortag{right:14%;top:56%;transform:rotate(8deg)}
+.lcol{max-width:420px;position:relative;z-index:1}
+.hours{display:inline-block;font:700 12px/1 var(--f-cap);letter-spacing:.2em;color:var(--brass-hi);border:1px solid var(--brass);padding:8px 10px;border-radius:2px;margin-bottom:18px}
+.welcome{font:700 14px/1.4 var(--f-cap);letter-spacing:.16em;color:var(--brass-hi);margin:0 0 10px}
+.headline{font:400 44px/1.1 var(--f-body);margin:0 0 14px;text-wrap:balance}
+@media (min-width:761px){.landing .headline{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
+.lead{font-size:18px;color:#e9e1cc;margin:0 0 18px}
+.plaque-line{display:block;width:100%;text-align:left;cursor:pointer;border:1px solid #6b5021;border-radius:3px;padding:12px 14px;background:linear-gradient(180deg,rgb(201 164 90/.16),rgb(201 164 90/.05));font:700 13px/1.5 var(--f-cap);letter-spacing:.12em;color:var(--brass-hi);margin-bottom:22px}
+.plaque-line u{display:block;font:italic 15px/1.4 var(--f-body);letter-spacing:0;color:var(--ivory);margin-top:4px}
+.plaque-line .shortp{display:none}
+.ctas{display:grid;gap:10px}
+.ctas small{display:block;color:#cfd5d2;font-size:14.5px;margin:-4px 0 6px}
+.strip{margin-top:18px;font:12px/1.6 var(--f-num);letter-spacing:.08em;color:var(--steel-hi)}
+.strip a{color:var(--steel-hi)}
+.skiphint{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:40;font:13px var(--f-num);letter-spacing:.12em;color:var(--steel-hi);background:#000a;padding:8px 14px;border-radius:20px}
+.catcher{position:fixed;inset:0;z-index:39;cursor:pointer}
+/* wall */
+.wall{position:fixed;inset:-6%;z-index:-1;display:grid;grid-template-columns:repeat(12,1fr);gap:1.1vw;padding:2vw;transform-origin:50% 40%;pointer-events:none}
+.wb{aspect-ratio:3/2;border:2px solid #6f5629;border-radius:3px;background:linear-gradient(180deg,#353c41,#1f2427);position:relative;opacity:.24;box-shadow:inset 0 1px 0 #ffffff1c}
+.wb span{position:absolute;left:8%;top:10%;font:700 max(8px,.7vw) var(--f-cap);color:#c9a45a;letter-spacing:.1em}
+.wb i{position:absolute;right:12%;top:38%;width:.7vw;height:1.1vw;border-radius:40% 40% 10% 10%;background:#0b0c0d}
+.wb.lit{opacity:.9;border-color:var(--brass-hi);background:linear-gradient(180deg,#9c9483,#5b5a52);box-shadow:0 0 0 2px #E2C07A,0 0 40px rgb(var(--lamp)/.55)}
+.wb.lit span{color:#2a1d08}
+/* generic */
+.room{max-width:1240px;margin:0 auto;padding:20px 24px 0}
+.counter{max-width:640px;margin:10px auto 0;padding:26px 30px}
+.counter h2{font:700 26px/1.2 var(--f-body);margin:0 0 6px}
+.muted{color:var(--ink-700)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.err{color:var(--stamp-red);font-weight:700}
+.err.dk{color:var(--danger-dark)}
+.okline{color:var(--success);font-weight:700}
+.note{font-size:15px}
+input.amt{font:700 30px/1 var(--f-num);width:100%;min-width:0;padding:8px 12px;border:1px solid var(--ink-700);border-radius:4px;background:#fffdf6;color:var(--ink)}
+input.sm{font-size:18px}
+label.chk{display:flex;gap:12px;align-items:flex-start;padding:8px 0;cursor:pointer}
+label.chk input{width:22px;height:22px;margin-top:3px;accent-color:#2E6B3A;flex:none}
+.steps{list-style:none;margin:16px 0 0;padding:0}
+.steps>li{border-top:1px solid var(--paper-300);padding:12px 0}
+.steps .done h3{color:var(--ink-700)}
+.steps h3{font:700 19px/1.3 var(--f-body);margin:0 0 4px}
+.kcard{position:relative;width:min(100%,420px);aspect-ratio:1.6;margin:12px auto 16px;padding:16px 18px;border-radius:10px;color:var(--ink);background:linear-gradient(135deg,rgb(255 255 255/.35),transparent 40%),var(--grain),var(--paper-100);background-size:auto,220px,auto;box-shadow:0 0 0 3px #C9A45A,0 0 0 4px #6B5021,0 14px 30px rgb(0 0 0/.5);font:13px/1.45 var(--f-num);transform:rotate(-1.5deg)}
+.kc-h{display:flex;justify-content:space-between;font:700 11px var(--f-cap);letter-spacing:.14em;border-bottom:1px solid var(--paper-300);padding-bottom:6px;margin-bottom:8px}
+.kcard .emb{position:absolute;right:16px;bottom:26px;font:700 50px/1 var(--f-cap);color:var(--paper-200);text-shadow:-1px -1px 0 rgb(255 255 255/.8),1px 1px 0 rgb(90 70 30/.28)}
+.kcard .qr{position:absolute;right:18px;top:40px;width:60px;height:60px;background:repeating-conic-gradient(#1E1B16 0 25%,transparent 0 50%) 0 0/15px 15px;border:4px solid var(--paper-100);outline:1px solid #1E1B16}
+.kcard dl{margin:0;display:grid;grid-template-columns:92px 1fr;gap:0 8px;padding-right:74px}
+.kcard dt{font-weight:700}
+.kcard dd{margin:0;overflow-wrap:anywhere}
+.kcard .foot{position:absolute;left:18px;bottom:10px;font-size:10.5px;letter-spacing:.05em}
+.rules{margin:6px 0;padding-left:1.1em;font-size:15.5px}
+/* box view */
+.boxroom{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:28px;align-items:start}
+.table{position:relative;border-radius:14px;padding:22px 22px 18px;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgb(var(--lamp)/.2),transparent 70%),var(--grain),var(--baize);background-size:auto,220px,auto;box-shadow:inset 0 0 0 1px #2c5541,inset 0 0 60px rgb(0 0 0/.45),0 20px 50px #000a}
+.case{border-radius:10px;padding:16px;background:linear-gradient(180deg,#4c555c,#2c3236);box-shadow:inset 0 1px 0 #ffffff30,0 18px 30px rgb(0 0 0/.55);border:1px solid #1b1e21}
+.case-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.plate{font:700 14px/1 var(--f-cap);letter-spacing:.2em;color:#2a1d08;padding:9px 14px;border-radius:3px;background:linear-gradient(180deg,#EAD49A,#C9A45A 45%,#B08D3C 60%,#D6B66E);box-shadow:inset 0 1px 0 #fff9,0 2px 5px #0009}
+.holder{font:14px var(--f-num);color:var(--steel-hi)}
+.total{font-size:16px;margin:0 0 12px}
+.total b{font-size:20px;color:#fff3dc}
+.bays{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bay{border-radius:8px;padding:14px;background:linear-gradient(180deg,#1a1f22,#252b2f);box-shadow:inset 0 2px 8px #000c;min-width:0}
+.bay h3{margin:0 0 10px;font:700 13px/1 var(--f-cap);letter-spacing:.2em;color:var(--brass-hi)}
+.bay p{margin:6px 0;font-size:15.5px;line-height:1.45}
+.risk{color:#fff3dc;font-weight:700}
+.drawer{position:relative;height:150px;border-radius:5px;display:grid;place-items:center;overflow:hidden}
+.label{padding:8px 12px 6px;min-width:150px;text-align:center;border-radius:2px;box-shadow:0 0 0 5px #B08D3C,0 0 0 6px #6B5021,0 3px 6px #0007}
+.label small{display:block;font:700 11px/1 var(--f-cap);letter-spacing:.2em;color:var(--ink-700)}
+.label b{display:block;font:700 28px/1.2 var(--f-num);color:var(--ink)}
+.label em{font:13px var(--f-num);font-style:normal;color:var(--ink-700)}
+.pull{position:absolute;bottom:12px;left:50%;width:90px;height:12px;margin-left:-45px;border-radius:7px;background:linear-gradient(180deg,#EAD49A,#B08D3C);box-shadow:0 3px 4px #0008}
+.coin{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3c4,#E2C07A 35%,#9b7328 80%);box-shadow:0 1px 2px #0008}
+.jarbox{display:flex;gap:12px;align-items:center;height:150px}
+.jar{width:118px;flex:none;height:150px}
+.hb{display:flex;align-items:center;gap:8px;font:13.5px/1.3 var(--f-num);color:#b8c2bd;margin-top:12px}
+.hb i{width:8px;height:8px;border-radius:50%;background:var(--brass);flex:none}
+.hb.pulse i{animation:pulse 900ms ease-out}
+.hb.stale{color:var(--warn-dark)}.hb.stale i{background:var(--warn-dark)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgb(var(--lamp)/.8)}100%{box-shadow:0 0 0 10px rgb(var(--lamp)/0)}}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.sublinks{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:15px}
+.qbtn{width:28px;height:28px;border-radius:50%;border:1px solid var(--brass);background:none;color:var(--brass-hi);cursor:pointer;font:700 13px var(--f-num);padding:0}
+.why{font-size:14.5px;background:#0006;border-left:3px solid var(--brass);padding:8px 10px}
+.exitface{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;padding:18px;border-radius:10px;background:linear-gradient(180deg,#2b1413,#1c0d0c);box-shadow:inset 0 0 0 1px #6d2320,0 12px 24px #0008;margin-bottom:14px}
+.exitface p{margin:6px 0}
+.chronobig{width:170px;height:170px}
+.cdigits{font:700 34px/1 var(--f-num);color:#fff3dc;margin:10px 0 8px}
+.bad{color:#ffb4ab;font-weight:700}
+.compact{display:flex;gap:18px;font:15px var(--f-num);color:var(--steel-hi);margin:0}
+/* passbook */
+.ledger{position:sticky;top:100px}
+.ledger-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-radius:6px 6px 0 0;font:700 13px/1 var(--f-cap);letter-spacing:.18em}
+.passbook{--rule:32px;line-height:var(--rule);background:linear-gradient(90deg,transparent 44px,rgb(168 50 45/.55) 44px 45px,transparent 45px),repeating-linear-gradient(180deg,transparent 0 calc(var(--rule) - 1px),var(--paper-300) calc(var(--rule) - 1px) var(--rule)),var(--mottle),var(--grain),var(--paper-100);background-size:auto,auto,480px,220px,auto;padding:var(--rule) 12px var(--rule) 52px;border-radius:0 0 3px 3px;max-height:calc(100vh - 240px);overflow:auto}
+.pcols,.pl{display:grid;grid-template-columns:58px minmax(0,1fr) 62px 62px 70px;gap:0 6px;font:14px/32px var(--f-num)}
+.pl .st{grid-column:2}.pl .pt{grid-column:2/6!important}
+.pcols{font-weight:700;color:var(--ink-700);font-size:11.5px;letter-spacing:.06em}
+.pl{text-decoration:none;color:var(--ink)}
+a.pl:hover{background:rgb(184 137 59/.12)}
+.pl .st{height:32px;display:flex;gap:8px;align-items:center;overflow:hidden}
+.pl .pt{grid-column:2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl .amt{text-align:right}
+.pl .out{color:var(--stamp-red)}
+.pl .calc{grid-column:2/6;font:italic 13px/32px var(--f-body);color:var(--ink-700)}
+.pnote{color:#cfd5d2;font-size:14.5px;margin:10px 2px}
+/* sheet */
+#scrim{position:fixed;inset:0;z-index:50;background:rgb(0 0 0/.7)}
+#sheet{position:fixed;z-index:51;left:50%;top:50%;width:min(600px,calc(100vw - 24px));max-height:calc(100vh - 60px);overflow:auto;transform:translate(-50%,-50%);padding:26px 28px 24px;border-radius:6px}
+#sheet[hidden],#scrim[hidden]{display:none}
+.x{position:absolute;right:10px;top:10px;width:44px;height:44px;border-radius:50%;border:1px solid var(--paper-300);background:transparent;cursor:pointer;font:22px/1 var(--f-body);color:var(--ink)}
+#sheet h2{font:700 25px/1.2 var(--f-body);margin:0 40px 4px 0}
+.lead2{margin:0 0 10px;color:var(--ink-700)}
+.slipsum{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 12px;border:1px dashed var(--ink-700);border-radius:3px;font:14.5px/1.4 var(--f-num);margin:8px 0 12px}
+.field{display:block;margin:10px 0}
+.field>span{display:block;font-weight:700;margin-bottom:4px}
+.inrow{display:flex;gap:8px;align-items:center}
+.radio{display:flex;gap:10px;align-items:center;padding:6px 0;cursor:pointer}
+.radio input{width:20px;height:20px;accent-color:#6B5021}
+.boxfront{position:relative;z-index:1;border-radius:8px;padding:14px;background:linear-gradient(180deg,#59626a,#343b40);box-shadow:inset 0 1px 0 #ffffff33,0 10px 18px #0007}
+.keys{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.kplate{border-radius:6px;padding:12px 10px;text-align:center;min-height:168px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.kplate b{font:700 12px/1.2 var(--f-cap);letter-spacing:.12em}
+.kplate small{font:13px/1.3 var(--f-num);color:var(--ink)}
+.plug{position:relative;width:72px;height:72px;margin-top:22px;border-radius:50%;flex:none;background:radial-gradient(circle at 40% 35%,#f0dca4,#C9A45A 45%,#8a6a2a 100%);box-shadow:inset 0 2px 3px #fff8,inset 0 -3px 6px #0006,0 3px 6px #0008}
+.plug::before{content:"";position:absolute;left:50%;top:18%;width:10px;height:64%;margin-left:-5px;border-radius:5px;background:#141414;box-shadow:inset 0 2px 3px #000}
+.plug>svg{position:absolute;left:0;top:-30px;width:72px;height:72px;overflow:visible}
+.mini{position:absolute;left:50%;top:-30px;width:34px;height:52px;margin-left:-17px;border-radius:3px;background:var(--paper-100);box-shadow:0 0 0 2px #C9A45A,0 3px 6px #0008;font:700 7px/1.1 var(--f-cap);color:var(--ink);display:grid;place-items:center;text-align:center}
+.plug.ok{box-shadow:inset 0 2px 3px #fff8,0 0 0 3px #2E6B3A,0 3px 6px #0008}
+.plug.glow{box-shadow:inset 0 2px 3px #fff8,0 0 0 3px #E2C07A,0 0 24px rgb(var(--lamp)/.8)}
+.loadrow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.loadrow .btn{min-height:44px;font-size:15px;padding:0 .9em}
+.picker{display:grid;gap:6px;margin:8px auto 0;max-width:420px}
+.picker button{text-align:left;border:1px solid var(--paper-300);background:#fffdf6;border-radius:4px;padding:10px 12px;cursor:pointer;font:14px var(--f-num);color:var(--ink)}
+.chrono{display:grid;grid-template-columns:104px 1fr;gap:14px;align-items:center;margin:12px 0 4px;padding:12px;border-radius:6px;background:linear-gradient(180deg,#221a0c,#15110a);color:var(--ivory);box-shadow:inset 0 0 0 1px #6b5021}
+.chrono svg{width:104px;height:104px}
+.pins{display:flex;gap:4px;margin:2px 0 8px}
+.pins i{width:9px;height:20px;border-radius:3px 3px 1px 1px;background:linear-gradient(180deg,#EAD49A,#8a6a2a);transform:translateY(-8px);opacity:.3;transition:transform 160ms var(--ease-bolt),opacity 160ms}
+.pins i.down{transform:none;opacity:1}
+.bar{height:6px;border-radius:3px;background:#3a2f1a;overflow:hidden}
+.bar i{display:block;height:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,#B08D3C,#E2C07A)}
+.elapsed{font:700 22px/1 var(--f-num);color:#fff3dc}
+.swait{font-size:15px;margin:6px 0 0}
+.wdrawer{position:relative;z-index:0;height:34px;margin:0 12px;border-radius:0 0 6px 6px}
+.wslip{position:relative;margin:16px 0 0;padding:18px 16px 14px;opacity:0;clip-path:polygon(0 6px,5% 0,10% 6px,15% 0,20% 6px,25% 0,30% 6px,35% 0,40% 6px,45% 0,50% 6px,55% 0,60% 6px,65% 0,70% 6px,75% 0,80% 6px,85% 0,90% 6px,95% 0,100% 6px,100% 100%,0 100%)}
+.wslip #wstamp{position:absolute;right:14px;top:22px;opacity:0;font-size:1.45rem}
+.is-done{opacity:1!important}
+.plug.is-done{transform:rotate(90deg)}
+.wdrawer.is-done{transform:translateY(64%)}
+details{margin:8px 0;font-size:15px}
+summary{cursor:pointer;font-weight:700}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;font:13.5px/1.5 var(--f-num);margin-top:6px}
+#wpop{position:fixed;z-index:70;right:18px;top:18px;width:330px;border-radius:14px;background:#fbfbfd;color:#16181d;font:15px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;box-shadow:0 24px 60px #000c;overflow:hidden}
+#wpop[hidden]{display:none}
+.wp-h{background:#16181d;color:#fff;padding:10px 14px;font-weight:600;display:flex;justify-content:space-between}
+.wp-b{padding:14px}
+.wp-b .r{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #e3e5ea;padding:6px 0;font-size:14px}
+.wp-f{display:flex;gap:10px;padding:0 14px 14px}
+.wp-f button{flex:1;min-height:44px;border-radius:22px;border:1px solid #c7cbd3;background:#fff;cursor:pointer;font-weight:600}
+.wp-f .ok{background:#1f5eff;border-color:#1f5eff;color:#fff}
+.choose{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+.door2{border-radius:6px;padding:14px;background:linear-gradient(180deg,#fffaf0,#efe5cc);box-shadow:0 0 0 3px #C9A45A,0 0 0 4px #6B5021,0 6px 14px #0004;display:flex;flex-direction:column;gap:6px}
+.door2 h3{margin:0;font:700 14px/1 var(--f-cap);letter-spacing:.2em}
+.door2 p{margin:0;font-size:15px}
+.door2 .btn{margin-top:auto}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:80;max-width:min(560px,92vw);padding:12px 18px;border-radius:6px;background:var(--paper-100);color:var(--ink);box-shadow:0 10px 30px #000a;font-size:16px;opacity:0;pointer-events:none;transition:opacity 280ms}
+#toast.on{opacity:1}
+.rail{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.rail button{min-height:40px;padding:0 12px;border-radius:20px;border:1px solid #3c4a43;background:#0e1512aa;color:var(--steel-hi);cursor:pointer;font:15px var(--f-body)}
+.rail button[aria-current=true]{background:var(--brass-hi);color:var(--green-900);border-color:var(--brass-hi);font-weight:700}
+.tourlead{margin:0 0 14px;color:#e9e1cc;max-width:760px}
+.pstamps{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0;min-height:30px;align-items:center}
+.tourgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.panel{padding:20px 22px}
+.panel h2{font:700 23px/1.2 var(--f-body);margin:0 0 8px}
+.facts{margin:10px 0;padding-left:1.2em}
+.facts li{margin:6px 0}
+.sample{outline:2px dashed #E8837A;outline-offset:6px;margin:10px 0}
+.sample-l{font:12px var(--f-num);color:#ffb4ab;letter-spacing:.1em;margin:0 0 12px}
+#jumper{position:fixed;right:12px;top:26px;z-index:91;width:min(360px,calc(100vw - 24px));max-height:calc(100vh - 80px);overflow:auto;background:#0b0f0d;border:1px solid #3a4046;border-radius:8px;padding:10px 12px;font:13px/1.3 var(--f-num);box-shadow:0 20px 50px #000}
+#jumper[hidden]{display:none}
+#jumper h4{margin:10px 0 4px;color:var(--brass-hi);font:700 11px var(--f-cap);letter-spacing:.16em}
+#jumper button{display:block;width:100%;text-align:left;background:none;border:0;border-radius:4px;padding:5px 6px;color:#dfe3e1;cursor:pointer;font:inherit}
+#jumper button:hover{background:#ffffff14}
+@media (max-width:760px){
+  body{font-size:16px}
+  #hdr{height:56px;padding:0 12px;gap:8px}
+  .nameplate{font-size:11px;padding:8px 9px 7px;letter-spacing:.14em}
+  .chip,.hdr-mid .boxplate{display:none}
+  .landing{grid-template-columns:1fr;gap:14px;padding:14px 18px 0;min-height:0;justify-items:center}
+  .vault{width:min(78vw,310px)}
+  .lcol{max-width:none;width:100%}
+  .headline{font-size:30px;text-align:center;margin:0 0 10px}
+  .lead,.hours{display:none}
+  .welcome{text-align:center}
+  .plaque-line{text-align:center;font-size:11.5px;padding:10px;margin-bottom:14px}
+  .plaque-line .longp{display:none}.plaque-line .shortp{display:inline}
+  .room{padding:12px 12px 0}
+  .boxroom{grid-template-columns:1fr}
+  .table{padding:12px;border-radius:10px}
+  .case{padding:10px}
+  .bays{grid-template-columns:1fr}
+  .drawer{height:118px}
+  .actions{position:fixed;left:0;right:0;bottom:0;z-index:25;margin:0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgb(14 21 18/.9),#0b100d);border-top:1px solid #26332c;gap:8px}
+  .actions .btn{padding:0 .4em;font-size:16px}
+  .ledger{position:static}
+  .passbook{max-height:none}
+  .pcols{display:none}
+  .pl{grid-template-columns:52px minmax(0,1fr) 72px;font-size:13.5px}
+  .pl .in,.pl .out{grid-column:3}
+  .pl .in:empty,.pl .out:empty,.pl .bal{display:none}
+  .pl .st{grid-column:2}.pl .pt{grid-column:2/4!important}.pl .calc{grid-column:2/4}
+  #sheet{left:0;right:0;top:auto;bottom:0;width:100%;max-height:calc(100dvh - 16px);transform:none;border-radius:14px 14px 0 0;padding:22px 16px 28px}
+  #sheet h2{font-size:22px}
+  .keys{gap:8px}
+  .kplate{padding:10px 6px}
+  .chrono{grid-template-columns:84px 1fr}.chrono svg{width:84px;height:84px}
+  .choose,.tourgrid{grid-template-columns:1fr}
+  .t2>:last-child{order:-1}
+  .exitface{grid-template-columns:1fr;justify-items:start}
+  .chronobig{width:120px;height:120px}
+  .counter{padding:20px 16px}
+  #wpop{right:8px;left:8px;width:auto;top:8px}
+  footer{padding-bottom:110px}
+}
+@media (prefers-reduced-motion:reduce){.pins i{transition:none}#toast{transition:opacity 150ms}.btn{transition:none}}
+</style>
+</head>
+<body>
+<div class="ribbon" role="note"><span>PROTOTYPE — CHAIN CALLS SIMULATED</span><button id="jbtn" title="Screen jumper (or press ?)">SCREENS ?</button></div>
+<div id="top"><div id="banner"></div><header id="hdr"></header></div>
+<main id="app"></main>
+<footer id="ftr"></footer>
+<div id="scrim" hidden></div>
+<section id="sheet" class="paper" role="dialog" aria-modal="true" aria-labelledby="sh-t" hidden></section>
+<div id="wpop" role="dialog" aria-label="Simulated wallet" hidden></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="live" class="sr" aria-live="polite"></div>
+<nav id="jumper" aria-label="Screen jumper" hidden></nav>
+<noscript><p style="padding:20px">Arc Guard needs JavaScript to talk to Arc.</p></noscript>
+<script type="application/json" id="copy">{"landing.nameplate": "ARC GUARD · SAFE DEPOSIT", "landing.headline": "Your dollars, behind two keys.", "landing.sub": "A safe deposit box for USDC on Arc. To take money out, you need your wallet and a key card that only you hold. Keep your money in the Locker, or let it earn in Savings.", "landing.cta.connect": "Open the door", "landing.cta.connect.sub": "Connect your wallet. Arc is added for you.", "landing.cta.practice": "Try Key 2 yourself", "landing.cta.practice.sub": "Cut a practice key card and let Arc check its signature. No wallet, no money.", "landing.cta.real": "See a real box", "landing.cta.real.sub": "A live box on Arc, with every entry on the public record.", "landing.hours": "OPEN 24 HOURS · ARC MAINNET", "landing.door.opening": "The door is opening.", "landing.sound.toggle": "Sound: on / Sound: off", "plaque.engraving": "TWO KEYS TO WITHDRAW · SECOND KEY BUILT TO RESIST QUANTUM COMPUTERS", "plaque.engraving.short": "SECOND KEY RESISTS QUANTUM COMPUTERS", "plaque.link": "Read the plaque", "open.title": "Right this way. Let's open your box.", "open.boxNo": "Your box: No. {boxNo}", "open.boxNo.hint": "The number comes from your wallet's address. Same wallet, same box, on any device.", "open.steps.label": "Four steps, about a minute.", "open.step1.title": "1. Key 1: your wallet", "open.step1.done": "Connected: {addrShort}", "open.noUsdc": "This wallet has no USDC on Arc yet. You'll need a little: some to deposit, and about 0.01 USDC per action for fees. Add USDC, then come back. Nothing has been set up.", "open.noUsdc.btn": "Check again", "open.step2.title": "2. Cut your key card", "open.step2.body": "Your browser makes Key 2 right now. It never leaves this device unless you save it. No one else ever sees it.", "open.step2.btn": "Cut my key card", "open.step2.working": "Cutting your key card…", "open.step3.title": "3. Save your key card", "open.step3.body": "You'll see this card once. Save it where your wallet isn't: printed in a drawer, or on a different device.", "open.step3.btn.download": "Download card", "open.step3.btn.print": "Print card", "open.step3.btn.copy": "Copy card text", "open.step3.copied": "Copied. Paste it somewhere that isn't this device.", "open.step3.downloadHelp": "Download didn't start? Some wallet apps block files. Print the card, or copy its text instead.", "open.step3.check.title": "Check your card", "open.step3.check.body": "Load the card you just saved, to make sure it works before you rely on it.", "open.step3.check.btn": "Check my card", "open.step3.check.ok": "Card checked. It fits Box No. {boxNo}.", "open.step3.confirm": "I've saved my key card somewhere away from my wallet.", "open.step3.remember": "Also remember it on this device", "open.step3.remember.warn": "Not recommended. Your wallet and your key card would then sit on the same device, so one thief could take both keys. Anyone using this browser, or a bad browser extension, could read the card.", "open.step4.title": "4. Open the box", "open.step4.body": "Confirm in your wallet. This registers your key card's lock on the box. Fee: about {fee} USDC, paid to Arc.", "open.step4.btn": "Open my box", "open.step4.waiting": "Waiting for your wallet…", "open.step4.confirming": "Arc is recording your box…", "open.done.title": "Box No. {boxNo} is open.", "open.done.body": "It's empty for now. Your first deposit goes into the Locker.", "open.done.btn": "Make a deposit", "open.leave.warn": "Your key card isn't saved yet. If you leave now, you'll need to cut a new one.", "card.what": "This is Key 2. Together with your wallet, it opens your box.", "card.rule1": "Keep it apart from your wallet. Not on the same phone, not in the same notes app.", "card.rule2": "Never share it. No one from Arc Guard will ever ask for it.", "card.rule3": "If you lose it, your money isn't lost. Use the 7-day emergency exit.", "card.rule4": "No one can replace it for you. There's no copy anywhere else.", "card.load.title": "Key 2: your key card", "card.load.drop": "Drop your key card here, or choose the file", "card.load.btn.file": "Choose file", "card.load.btn.scan": "Scan printed card", "card.load.btn.type": "Type card code", "card.load.btn.remembered": "Use card on this device", "card.load.ok": "Card fits. Print {A1B2-C3D4}, Box No. {boxNo}.", "card.load.privacy": "The card stays in this browser. Only the signed slip is sent.", "rotate.title": "Replace your key card", "rotate.body": "You'll need your current card. Your box gets a new lock, and the old card stops working for good.", "rotate.btn": "Cut a new card", "rotate.done": "New card in use. The old card no longer opens Box No. {boxNo}. Destroy it.", "rotate.lost": "Lost the current card? You can't replace it without the card. Use the emergency exit instead.", "box.title": "Box No. {boxNo}", "box.holder": "Holder {addrShort}", "box.total": "In your box: {total} USDC", "box.locker.label": "Locker", "box.locker.caption": "Sits here. Doesn't earn.", "box.savings.label": "Savings", "box.savings.vault": "Galaxy USDC vault on Morpho", "box.savings.rate": "{apy}% a year: about {centsPer100}¢ on every $100", "box.savings.risk": "Earns by lending through Morpho. Small extra risk.", "box.savings.projection": "At this rate, your {savings} USDC earns about {yearly} USDC a year.", "box.savings.live": "Savings balance, updating as it earns", "box.savings.rate.loading": "Reading today's rate…", "box.savings.rate.unavailable": "Rate not available right now. Savings keeps earning either way.", "box.savings.loss": "Savings is worth {value} USDC, less than the {movedIn} USDC you moved in. This is the lending risk named below. The Locker isn't affected.", "box.savings.rounding": "Savings counts in vault shares, so {amount} USDC can show as {amountMinus}. The vault rounds down by at most a millionth of a dollar.", "box.btn.deposit": "Deposit", "box.btn.move": "Move", "box.btn.withdraw": "Withdraw", "box.btn.passbook": "Passbook", "box.link.emergency": "Lost your key card?", "box.link.rotate": "Replace key card", "box.empty": "Your box is empty. Deposits go into the Locker first.", "move.title": "Move between Locker and Savings", "move.body": "Money stays inside your box. Your wallet alone can do this. No key card needed.", "move.toSavings": "Locker → Savings", "move.toLocker": "Savings → Locker", "move.amount": "Amount", "move.max": "All", "move.btn": "Move {amount} USDC", "move.done.toSavings": "Moved. {amount} USDC is now in Savings, earning.", "move.done.toLocker": "Moved. {amount} USDC is back in the Locker.", "move.rounding": "Shows {amountMinus} instead of {amount}? The vault rounds down by at most a millionth of a dollar (0.000001 USDC). Interest soon covers it.", "deposit.title": "Make a deposit", "deposit.lead": "Every deposit goes into your Locker first. Then you choose where it stays.", "deposit.amount.label": "How much?", "deposit.amount.placeholder": "0.00", "deposit.wallet": "In your wallet: {walletBal} USDC", "deposit.max": "All but fees", "deposit.feeNote": "Keep a little USDC in your wallet for fees: about 0.01 USDC per action.", "deposit.step1": "Step 1 of 2: give the box permission to take {amount} USDC.", "deposit.step1.btn": "Give permission", "deposit.step2": "Step 2 of 2: deposit {amount} USDC.", "deposit.step2.btn": "Deposit {amount} USDC", "deposit.step.skip1": "Permission already given. One step.", "deposit.waiting": "Waiting for your wallet…", "deposit.confirming": "Arc is recording your deposit…", "deposit.done": "Deposited. {amount} USDC is in your Locker.", "deposit.done.stamp": "DEPOSITED", "choose.title": "Keep it in the Locker, or let it earn in Savings?", "choose.locker.title": "Locker", "choose.locker.body": "Just sits there. Nothing to do. Earns nothing.", "choose.locker.btn": "Keep in Locker", "choose.savings.title": "Savings", "choose.savings.vault": "Galaxy USDC vault on Morpho", "choose.savings.rate": "{apy}% a year: about {centsPer100}¢ on every $100", "choose.savings.risk": "Earns by lending through Morpho. Small extra risk.", "choose.savings.btn": "Move to Savings", "choose.savings.fee": "One more confirmation in your wallet. No key card needed.", "choose.footnote": "You can change your mind anytime from your box.", "choose.done.locker": "Very good. {amount} USDC stays in your Locker.", "choose.done.savings": "Very good. {amount} USDC is in Savings, earning from now.", "choose.details": "Savings deposits your USDC into the Galaxy USDC vault, a lending vault run on Morpho by a third party. Borrowers pay interest, which the vault passes on. If borrowers or the vault fail, some money could be lost, and sometimes withdrawals wait until funds are repaid. Arc Guard doesn't run the vault.", "withdraw.title": "Take money out", "withdraw.lead": "This needs both keys.", "withdraw.from.locker": "From Locker (up to {locker} USDC)", "withdraw.from.savings": "From Savings (up to {savings} USDC)", "withdraw.to.label": "Send to", "withdraw.to.self": "Your wallet ({addrShort})", "withdraw.to.other": "Another address", "withdraw.to.other.warn": "Check every character. Money sent to the wrong address can't be brought back.", "withdraw.summary": "{amount} USDC to {addrShort}. Fee about 0.01 USDC, paid to Arc.", "withdraw.key1.label": "Key 1 · your wallet", "withdraw.key1.ok": "In the lock: {addrShort}", "withdraw.key2.label": "Key 2 · your key card", "withdraw.key2.empty": "Load your key card to sign this withdrawal.", "withdraw.sign.btn": "Sign with key card", "withdraw.turn.btn": "Turn both keys", "withdraw.turn.sub": "Confirm in your wallet. Arc then checks both keys.", "withdraw.slipNote": "Your key card signs a slip for this exact amount and address, valid for {minutes} minutes. It can't be reused.", "sign.wait.0": "Your key card is signing…", "sign.wait.1": "Signing takes a moment. This key is built heavy on purpose.", "sign.wait.2": "Phones take a few seconds. Still signing.", "sign.wait.3": "Nearly there. Keep this page open.", "sign.wait.4": "This is taking longer than usual. You can keep waiting or cancel. Nothing has been sent.", "sign.cancel": "Cancel", "sign.done": "Signed. Key 2 is turned.", "sign.aria": "Signing with your key card. Nothing has been sent yet.", "withdraw.waitWallet": "Turn Key 1: confirm in your wallet…", "withdraw.confirming": "Arc is checking both keys…", "withdraw.slow": "Still waiting for Arc. Usually a second or two. Your wallet shows the latest status.", "withdraw.done.title": "Both keys turned.", "withdraw.done.body": "{amount} USDC sent to {addrShort}.", "withdraw.done.receipt": "Receipt No. {txShort}", "withdraw.done.explorer": "See it on Arc's public record", "withdraw.done.left": "Left in your box: {total} USDC", "withdraw.done.stamp": "WITHDRAWN", "withdraw.done.close": "Back to my box", "passbook.title": "Passbook · Box No. {boxNo}", "passbook.cols": "DATE · PARTICULARS · IN · OUT · BALANCE", "passbook.empty": "No entries yet. Your first deposit will be stamped here.", "passbook.loading": "Fetching your entries from Arc…", "passbook.lineLink": "Receipt", "passbook.note": "Every line is copied from Arc's public record. Tap a line to see its receipt.", "passbook.more": "Earlier entries", "exit.title": "Lost your key card?", "exit.lead": "Your money isn't lost.", "exit.body": "Start the emergency exit with your wallet alone. After 7 days, everything in your box, Locker and Savings, is paid to the address you choose.", "exit.why": "Why 7 days? So that someone with only your wallet can't empty your box at once. During the wait, your key card can cancel the exit.", "exit.to.label": "Pay everything to", "exit.to.self": "This wallet ({addrShort})", "exit.to.other": "Another address", "exit.warn.address": "Check this address carefully. In 7 days the whole box goes there, and it can't be undone.", "exit.warn.cancel": "If you find your card, you can cancel. Anyone holding your key card can cancel too.", "exit.warn.after": "After it's paid out, your box is empty. To keep saving here, open a new box with a new card.", "exit.found": "Have your card after all? You don't need this. Withdraw normally.", "exit.btn": "Start 7-day exit", "exit.confirm": "Start the exit? In 7 days, {total} USDC goes to {addrShort}.", "exit.confirm.yes": "Yes, start it", "exit.confirm.no": "Go back", "exit.tag": "EXIT PENDING", "exit.banner": "Emergency exit pending. In {countdown}, everything in this box goes to {addrShort}.", "exit.countdown": "{d} days {hh}:{mm}:{ss}", "exit.countdown.aria": "Emergency exit opens in {d} days and {h} hours.", "exit.notMe": "Didn't start this? Someone may have your wallet. Cancel now with your key card, then withdraw everything to a new wallet.", "exit.cancel.btn": "Cancel with key card", "exit.cancel.body": "Load your key card. Anyone can send the cancellation, but only your key card can sign it.", "exit.cancel.done": "Exit cancelled. Your box is back to normal.", "exit.pending.withdrawNote": "While an exit is pending, you can still withdraw with both keys.", "exit.ready.title": "The exit is open.", "exit.ready.body": "{total} USDC can now be paid to {addrShort}.", "exit.ready.btn": "Pay out now", "exit.ready.note": "Anyone can press this; the money only ever goes to {addrShort}.", "exit.paid": "Exit paid. {amount} USDC sent to {addrShort}. Your box is now empty.", "err.noWallet": "No wallet found in this browser. Install a wallet app, or look around the demo box first.", "err.rejected": "You cancelled in your wallet. Nothing was sent.", "err.wrongNetwork": "Your wallet is on another network. Switch to Arc to continue. [Switch to Arc]", "err.addNetworkFailed": "Your wallet didn't add Arc. Add it by hand (details below), then try again. Nothing was sent.", "err.accountChanged": "You switched wallets. This is Box No. {boxNo}.", "err.accountChanged.noBox": "This wallet has no box yet. [Open a box]", "err.disconnected": "Your wallet disconnected. Your money hasn't moved. [Reconnect]", "err.rpc": "Can't reach Arc right now. Your money hasn't moved. Try again in a minute.", "err.txDropped": "Arc didn't receive that. Nothing was sent. Try again.", "err.txTimeout": "No answer from Arc yet. Check your wallet's activity before trying again, so you don't send twice.", "err.amount.empty": "Enter an amount.", "err.amount.zero": "Enter an amount above zero.", "err.amount.decimals": "USDC goes to 6 decimal places at most.", "err.amount.overWallet": "You have {walletBal} USDC in your wallet. Enter that or less.", "err.amount.overLocker": "Your Locker holds {locker} USDC. Enter that or less.", "err.amount.overSavings": "Your Savings hold {savings} USDC. Enter that or less.", "err.fee.low": "Not enough USDC in your wallet for the fee (about 0.01 USDC). Add a little USDC to your wallet. Nothing was sent.", "err.approve.failed": "Permission wasn't given. Nothing was deposited. Try step 1 again.", "err.box.alreadyOpen": "This wallet already has a box: No. {boxNo}. [Go to my box]", "err.box.none": "This wallet has no box yet. [Open a box]", "err.box.changed": "Your box changed while you were signing (another action went through first). Nothing was sent. Sign again.", "err.card.notCard": "That file isn't a Arc Guard key card. Look for `pq-guard-key-card-box-{boxNo}.json`.", "err.card.damaged": "This key card is damaged or incomplete. Try another copy, or your printed card.", "err.card.otherBox": "This key card is for Box No. {otherBox}, not Box No. {boxNo}. Nothing was sent.", "err.card.replaced": "This card was replaced on {date} and no longer opens your box. Use your newest card.", "err.card.noMatch": "This card doesn't fit your box's lock. Nothing was sent. Try another copy, or use the emergency exit.", "err.card.typo": "The card code doesn't check out. Look for a mistyped character in group {n}.", "err.card.scan": "Couldn't read the QR code. Try more light, or type the card code instead.", "err.card.camera": "Camera access is off. Allow it in your browser settings, or type the card code.", "err.card.remembered.gone": "The card saved on this device is gone (browser data was cleared). Load your saved card instead.", "err.sign.crashed": "Your browser stopped the signing, probably to save memory. Close other tabs and try again. Nothing was sent.", "err.sign.unsupported": "This browser can't sign with a key card. Try a recent Chrome, Safari or Firefox. Your money hasn't moved.", "err.sign.expired": "The signed slip expired before it reached Arc (slips last {minutes} minutes). Nothing was sent. Sign again.", "err.sign.rejectedOnChain": "Arc didn't accept the key card's signature. Nothing was sent. Load your card again and retry. If it happens again, the card may not match your box.", "err.keygen.failed": "Couldn't cut your key card. Reload the page and try again. Your box hasn't been opened yet.", "err.download.blocked": "Your browser blocked the download. Print the card, or copy its text.", "err.to.invalid": "That isn't a valid address. Check it and try again.", "err.to.box": "That's the box's own address. Send to a wallet instead.", "err.to.blocked": "USDC can't be sent to this address: it's on the USDC blocked list. Nothing was sent. Choose another address.", "err.savings.full": "The Savings vault isn't taking deposits right now (it's full). Your money stays in the Locker.", "err.savings.limited": "Savings can pay out only {max} USDC right now. The rest is lent out. Take up to {max} now, or try later. The rest stays in Savings, still earning.", "err.savings.unavailable": "Can't reach the Savings vault right now. Your money hasn't moved. Try again shortly.", "err.exit.pending": "An exit is already pending. It opens {date}.", "err.exit.notReady": "The exit opens {date} at {time}. Not yet.", "err.exit.none": "There's no exit to cancel. Your box is normal.", "err.exit.to.invalid": "That isn't a valid address. The whole box would go there, so check it and try again.", "err.unknown": "That didn't go through, and the reason isn't clear. Your money hasn't moved. Try again, or open Details for developers.", "tour.ribbon": "A REAL BOX · VIEW ONLY", "tour.lead": "This is the builder's own box, live on Arc. You can look at everything. Only its two keys can move anything.", "tour.passbookNote": "Every line here is a real entry. Tap one to see its receipt on Arc's public record.", "tour.btn.disabled": "View only. Open your own box to use this.", "tour.cta": "Open your own box", "tour.cta.practice": "Try Key 2 yourself", "practice.title": "Try Key 2 yourself", "practice.lead": "Cut a practice key card in your browser, sign a slip, and ask Arc to check it. No wallet, no money, no fee.", "practice.step1.btn": "Cut a practice card", "practice.step1.done": "Practice card cut. Print {A1B2-C3D4}. It opens no box.", "practice.slip": "SLIP: \"Pay 10.00 USDC to 0x12ab…90cd\". A sample message. Nothing will be paid.", "practice.step2.btn": "Sign the slip", "practice.step2.working": "Your practice card is signing… (the same wait messages as `sign.wait.*`)", "practice.step3.btn": "Ask Arc to check", "practice.step3.working": "Arc's built-in checker is reading the signature…", "practice.ok.stamp": "GENUINE", "practice.ok": "Arc says: genuine. The live network checked this signature in {ms} ms. Nothing was written, so there's no receipt.", "practice.tamper.btn": "Change one letter", "practice.tamper.done": "Slip changed: \"Pay 10.00 USDC\" is now \"Pay 90.00 USDC\".", "practice.bad.stamp": "REFUSED", "practice.bad": "Arc says: not genuine. Change one letter and the signature no longer fits. A forged or altered slip can't open a box.", "practice.discard": "This practice card is thrown away when you leave. Real cards are cut when you open a box.", "practice.cta": "Open a real box", "practice.err.rpc": "Can't reach Arc right now, so the check didn't run. Try again in a minute.", "demo.ribbon": "PRACTICE BOX · PRETEND MONEY", "demo.lead": "Everything works as it would, but no money moves on Arc.", "demo.explorer": "In a real box, this links to Arc's public record. [See a real one]", "demo.exit": "Leave practice box", "footer.links": "Source code · Contract on Arc · How it works · Risks", "about.short": "Arc Guard is a two-key safe deposit box for USDC on Arc. PQ stands for post-quantum: your second key uses a signature designed to resist quantum computers. Built for Arc Microgrants and open for anyone to read.", "meta.title": "Arc Guard: a safe deposit box for your digital dollars", "meta.description": "Keep USDC on Arc behind two keys: your wallet, and a key card built to resist quantum computers. Locker or Savings. Open source.", "footer.disclosure": "Arc Guard is open-source software (MIT), not a bank. It's non-custodial: your money sits in a smart contract on Arc that only your two keys can open. We hold no key and can't move it. Not insured. Not approved, endorsed or run by Circle. Savings uses the Galaxy USDC vault on Morpho, run by third parties, and lending carries risk. The contract is new and has not been audited; a bug could lose funds. Anyone with both your wallet and your key card can take everything. Deposit only what you can afford to lose.", "plaque.full": "**Why two keys?**\nYour wallet proves who you are with one kind of signature. Experts expect that a large enough quantum computer could one day forge it. No such computer exists today.\n\nSo your box asks for a second key: a key card that signs with **SLH-DSA**, a hash-based signature published by NIST in 2024 (FIPS 205) and designed to resist quantum computers. Arc checks that signature itself, every time money leaves the box.\n\n**What this means.** Someone who gets your wallet, whether by theft today or by quantum computer later, still can't take money out without your key card.\n\n**What it doesn't mean.**\n- If someone gets **both** your wallet and your key card, they can take everything.\n- Someone with only your wallet can **start** the 7-day emergency exit. You can cancel it with your key card. Check your box at least once a week.\n- The box is new software. A bug could lose money.\n- Savings lends through Morpho, which adds a small extra risk.\n\nEverything here is open source. You can read every line.", "open.step3.check.skipWarn": "Skipping. If the saved card doesn't work, only the 7-day exit can get your money out."}</script>
+<script>
+/* ===== sound.js from design/research/sound-motion.md (verbatim; vaultDoor gained a swing-length param for the 2.4 s cap) ===== */
+// sound.js: every Arc Guard sound is synthesised with Web Audio. No samples, no libraries.
+const PREF = 'pqg-sound';
+const MASTER = 0.5;
+let ctx = null, out = null, room = null, noise = null;
+let soundOn = globalThis.localStorage?.getItem(PREF) !== 'off'; // default: on
+
+function setSound(on) {
+  soundOn = on;
+  globalThis.localStorage?.setItem(PREF, on ? 'on' : 'off');
+  if (out) out.gain.setTargetAtTime(on ? MASTER : 0, ctx.currentTime, 0.03); // also silences anything mid-play
+}
+
+// Call from the first user gesture (Open the vault / Connect). Before that, browsers refuse to play.
+function unlockAudio(c) {
+  if (ctx) return ctx.resume();
+  ctx = c || new AudioContext({ latencyHint: 'interactive' });
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -14; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.25;
+  out = ctx.createGain(); out.gain.value = soundOn ? MASTER : 0;
+  out.connect(comp).connect(ctx.destination);
+  noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate); // 1 s of white noise, shared
+  const d = noise.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const ir = ctx.createBuffer(2, Math.floor(ctx.sampleRate * 0.9), ctx.sampleRate); // marble hall
+  for (let ch = 0; ch < 2; ch++) {
+    const r = ir.getChannelData(ch);
+    for (let i = 0; i < r.length; i++) r[i] = (Math.random() * 2 - 1) * (1 - i / r.length) ** 3;
+  }
+  room = ctx.createConvolver(); room.buffer = ir; room.connect(out);
+  return ctx.resume?.();
+}
+
+// ---------- primitives ----------
+const ready = () => ctx && soundOn;
+const now = (at) => ctx.currentTime + 0.02 + at;
+
+function bus(vol, wet) { // per-sound gain, with a send into the room
+  const g = ctx.createGain(); g.gain.value = vol; g.connect(out);
+  const s = ctx.createGain(); s.gain.value = wet; g.connect(s).connect(room);
+  return g;
+}
+function env(dest, t, peak, attack, decay) { // exponential attack/decay on a fresh gain node
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+  g.connect(dest); return g;
+}
+function hold(dest, t, peak, attack, sustain, release) { // attack, flat sustain, release
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + attack);
+  g.gain.setValueAtTime(peak, t + attack + sustain);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + attack + sustain + release);
+  g.connect(dest); return g;
+}
+function noiseBurst(dest, t, dur, type, freq, q = 1) { // filtered noise; returns the filter
+  const src = ctx.createBufferSource(); src.buffer = noise; src.loop = true;
+  const f = ctx.createBiquadFilter(); f.type = type; f.Q.value = q;
+  f.frequency.setValueAtTime(freq, t);
+  src.connect(f).connect(dest);
+  src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.05);
+  return f;
+}
+function tone(dest, t, dur, type, f0, f1 = f0) { // oscillator with optional pitch glide
+  const o = ctx.createOscillator(); o.type = type;
+  o.frequency.setValueAtTime(f0, t);
+  if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  o.connect(dest); o.start(t); o.stop(t + dur + 0.05);
+  return o;
+}
+const thud = (dest, t, f0, f1, dur, vol) => tone(env(dest, t, vol, 0.004, dur), t, dur, 'sine', f0, f1);
+const tick = (dest, t, hz, vol, q = 6, dur = 0.03) => noiseBurst(env(dest, t, vol, 0.001, dur), t, dur, 'bandpass', hz, q);
+
+// ---------- recipes ----------
+
+// Round steel vault door. 0–0.64 s: four bolts retract. 0.75 s: the door breaks away and swings
+// with a low rumble and a hinge groan. 2.95 s: it comes to rest. Matches --dur-door-* tokens.
+function vaultDoor(at = 0, swing = 2.2) { // prototype A: swing scaled so the door rests inside the 2.4 s cap
+  if (!ready()) return;
+  const t = now(at), b = bus(1, 0.35), k = swing / 2.2;
+  for (let i = 0; i < 4; i++) { // bolts, 160 ms apart, each a steel click + a low knock
+    const ti = t + i * 0.16;
+    tick(b, ti, 1900 + i * 140, 0.35, 4, 0.05);
+    thud(b, ti, 140, 70, 0.14, 0.45);
+  }
+  const s = t + 0.75; // swing starts
+  const rumble = hold(b, s, 0.5, 0.6 * k, 0.6 * k, 1.2 * k); // 2.4 s of mass moving
+  noiseBurst(rumble, s, 2.4 * k, 'lowpass', 140, 0.7);
+  const sub = ctx.createBiquadFilter(); sub.type = 'lowpass'; sub.frequency.value = 110;
+  const subGain = ctx.createGain(); subGain.gain.value = 0.6;
+  sub.connect(subGain).connect(rumble);
+  tone(sub, s, 2.4 * k, 'sawtooth', 42, 31); // pitch sags as the door slows
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 700; bp.Q.value = 9;
+  bp.connect(hold(b, s + 0.2, 0.12, 0.5 * k, 0.6 * k, 0.7 * k)); // hinge groan
+  const groan = tone(bp, s + 0.2, 1.8 * k, 'sawtooth', 95, 80);
+  const lfo = ctx.createOscillator(), depth = ctx.createGain(); // slow stick-slip wobble
+  lfo.frequency.value = 7; depth.gain.value = 6;
+  lfo.connect(depth).connect(groan.frequency); lfo.start(s + 0.2); lfo.stop(s + 0.2 + 1.85 * k);
+  thud(b, s + swing, 90, 40, 0.5, 0.8); // comes to rest against the stop
+  tick(b, s + swing, 600, 0.2, 2, 0.08);
+}
+
+// Key card goes into keyhole 2: bright brass-on-steel scrape, five pin tumblers lift, key seats.
+function keyInsert(at = 0) {
+  if (!ready()) return;
+  const t = now(at), b = bus(0.7, 0.1);
+  const f = noiseBurst(env(b, t, 0.18, 0.02, 0.26), t, 0.28, 'bandpass', 2600, 3);
+  f.frequency.exponentialRampToValueAtTime(4200, t + 0.28); // pitch rises as the blade slides in
+  [3900, 4300, 3600, 4700, 4100].forEach((hz, i) => tick(b, t + 0.05 + i * 0.045, hz, 0.22, 10, 0.02));
+  thud(b, t + 0.3, 220, 120, 0.06, 0.3);
+}
+
+// Both keys turn a quarter turn over three detents, then the bolt throws: CLUNK at +320 ms.
+function keyTurn(at = 0) {
+  if (!ready()) return;
+  const t = now(at), b = bus(1, 0.3);
+  noiseBurst(env(b, t, 0.08, 0.05, 0.25), t, 0.3, 'bandpass', 1200, 2); // friction
+  [0, 0.1, 0.2].forEach((d) => tick(b, t + d, 2400 - d * 2000, 0.25, 8, 0.025)); // detents
+  const c = t + 0.32; // the clunk: low body, mid knock, faint steel ring
+  thud(b, c, 120, 50, 0.3, 0.9);
+  tick(b, c, 650, 0.5, 1.5, 0.07);
+  tone(env(b, c, 0.05, 0.002, 0.45), c, 0.45, 'sine', 1180);
+  tone(env(b, c, 0.03, 0.002, 0.35), c, 0.35, 'sine', 2710);
+}
+
+// Safe deposit box slides out of the wall on steel runners and stops against its catch.
+function drawerSlide(at = 0, dur = 0.9) {
+  if (!ready()) return;
+  const t = now(at), b = bus(0.8, 0.2);
+  const f = noiseBurst(hold(b, t, 0.25, 0.12, dur - 0.32, 0.2), t, dur, 'bandpass', 380, 1.2);
+  f.frequency.linearRampToValueAtTime(260, t + dur); // runner pitch drops as it slows
+  for (let d = 0.05; d < dur - 0.1; d += 0.07) tick(b, t + d, 1100, 0.05, 4, 0.02); // rollers
+  thud(b, t + dur, 130, 60, 0.18, 0.5);
+}
+
+// Rubber stamp on paper on a wooden counter: thump + dry slap + wood knock, then the inked peel.
+function stamp(at = 0) {
+  if (!ready()) return;
+  const t = now(at), b = bus(1, 0.2);
+  thud(b, t, 160, 55, 0.12, 0.9);
+  noiseBurst(env(b, t, 0.35, 0.002, 0.06), t, 0.07, 'lowpass', 900, 0.8);
+  tick(b, t + 0.004, 380, 0.3, 5, 0.09);
+  noiseBurst(env(b, t + 0.22, 0.06, 0.01, 0.05), t + 0.22, 0.06, 'highpass', 2500, 0.7);
+}
+
+// A coin drops into the glass Savings jar: hit, two smaller bounces, the jar answers once.
+function coin(at = 0) {
+  if (!ready()) return;
+  const t = now(at), b = bus(0.8, 0.25);
+  const base = 2400 * (0.96 + Math.random() * 0.08); // ±4% so repeated coins aren't clones
+  [[0, 1], [0.085, 0.45], [0.14, 0.2]].forEach(([d, v]) => {
+    [1, 1.47, 2.09, 2.56].forEach((r, i) => // inharmonic partials of a small metal disc
+      tone(env(b, t + d, (0.25 * v) / (i + 1), 0.001, 0.35 - i * 0.06), t + d, 0.4, 'sine', base * r));
+  });
+  tone(env(b, t, 0.1, 0.003, 0.7), t, 0.7, 'sine', 1320); // hollow glass body
+  tick(b, t, 5000, 0.2, 1, 0.012); // hard contact transient
+}
+
+// Soft escapement tick-tock while the key card signs. Returns stop(); call it when signing ends.
+function startTicking() {
+  if (!ready()) return () => {};
+  const b = bus(0.5, 0.15);
+  let n = 0;
+  const beat = () => {
+    const t = ctx.currentTime + 0.01;
+    tick(b, t, n++ % 2 ? 2600 : 3300, 0.5, 12, 0.018);
+    thud(b, t, 900, 700, 0.02, 0.1);
+  };
+  beat();
+  const id = setInterval(beat, 300); // ponytail: setInterval jitter ~ms; signing runs in a worker so the main thread is idle
+  return () => { clearInterval(id); b.gain.setTargetAtTime(0, ctx.currentTime, 0.03); };
+}
+
+// Wrong key card / failed transaction. Calm: a low double buzz, then the key rattles and won't turn.
+function errorBuzz(at = 0) {
+  if (!ready()) return;
+  const t = now(at), b = bus(0.6, 0.1);
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500; lp.connect(b);
+  [0, 0.2].forEach((d) => tone(hold(lp, t + d, 0.18, 0.015, 0.1, 0.04), t + d, 0.16, 'square', 98));
+  [0.42, 0.5, 0.56].forEach((d) => tick(b, t + d, 1800, 0.12, 6, 0.02));
+}
+
+// Emergency exit requested / cancelled. An old bank alarm bell: the clapper hits a steel gong
+// 16 times a second for `seconds`, then the gong rings out. Never looped.
+function emergencyBell(at = 0, seconds = 1.1) {
+  if (!ready()) return;
+  const t = now(at), b = bus(0.5, 0.4), ring = ctx.createGain();
+  ring.gain.setValueAtTime(0.0001, t); ring.connect(b);
+  [[1, 0.5], [2.32, 0.25], [4.25, 0.15], [6.63, 0.08]].forEach(([r, v]) => { // gong partials
+    const g = ctx.createGain(); g.gain.value = v; g.connect(ring);
+    tone(g, t, seconds + 1.5, 'sine', 740 * r);
+  });
+  for (let i = 0; i < seconds * 16; i++) { // each strike re-excites the gong
+    const s = t + i / 16;
+    ring.gain.setValueAtTime(1, s); ring.gain.setTargetAtTime(0.35, s, 0.02);
+    tick(b, s, 3000, 0.08, 3, 0.01);
+  }
+  ring.gain.setTargetAtTime(0.0001, t + seconds, 0.45);
+}
+
+/* ===== app ===== */
+const T = JSON.parse(document.getElementById('copy').textContent);
+const t = (k, v = {}) => (T[k] ?? k).replace(/\{([\w-]+)\}/g, (m, n) => (v[n] ?? m)).replace(/\s*\[[^\]]*\]\s*$/, '').replace(/`/g, '');
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const coarse = matchMedia('(pointer: coarse)').matches;
+const phone = () => innerWidth <= 760;
+const ms = (v) => (reduce ? 1 : v);
+const ease = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const sleep = (n) => new Promise((r) => setTimeout(r, n));
+const fmt = (n) => (Math.round(n * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const short = (a) => a.slice(0, 6) + '…' + a.slice(-4);
+const boxNo = (a) => String(parseInt(a.slice(-4), 16) % 10000).padStart(4, '0');
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const p2 = (n) => String(n).padStart(2, '0');
+const EXPL = 'https://explorer.arc.io';
+const txUrl = (h) => `${EXPL}/tx/${h}?tab=logs`;
+const hash = (seed) => { let h = '0x', x = (seed * 2654435761) >>> 0; for (let i = 0; i < 64; i++) { x = (x * 1103515245 + 12345) >>> 0; h += ((x >>> 16) & 15).toString(16); } return h; };
+const RATE = 0.0558; // % a year, Galaxy USDC vault on Morpho
+const USER = '0x12ab7c4f9e21d0a3b6c85f47e9d2a1c03b7e10af'; // box No. 4271
+const DEMO = '0x5e1d93a0c4b7e2f6d8a1b3c5e7f90246a8c01141'; // builder's box No. 4417
+const OTHER = '0xab4f02d1e9c87b6a5f4e3d2c1b0a99887766c3cd';
+const CONTRACT = '0x9c1f5a7e3b2d4c6e8f0a1b3c5d7e9f1a2b4c6d8e';
+const DEMO_TX = hash(7);
+const rateLine = () => t('box.savings.rate', { apy: '0.056', centsPer100: '6' });
+const demoBox = () => ({ addr: DEMO, locker: 20, savings: 30, earned: 0.000412 });
+const demoBook = () => [
+  { d: '21 SEP', st: 'OPENED', ink: 'green', p: 'Box opened · card 7F3A-19C2', bal: 0, tx: hash(1) },
+  { d: '21 SEP', st: 'DEPOSITED', ink: 'green', p: 'Deposit from ' + short(DEMO), inn: 55, bal: 55, tx: hash(2) },
+  { d: '22 SEP', st: 'SAVED', ink: 'brass', p: 'Locker → Savings · 30.00', bal: 55, tx: hash(3) },
+  { d: '23 SEP', st: 'WITHDRAWN', k2: true, ink: 'ink', p: 'Paid to ' + short(DEMO), out: 5, bal: 50, tx: DEMO_TX },
+  { d: '24 SEP', st: 'EXIT STARTED', ink: 'red', p: 'Emergency exit to ' + short(DEMO) + ' · opens 1 Oct', bal: 50, tx: hash(4) },
+  { d: '24 SEP', st: 'CANCELLED', ink: 'green', p: 'Emergency exit cancelled with key card', bal: 50, tx: hash(5) },
+  { d: '24 SEP', st: 'NEW CARD', ink: 'ink', p: 'Key card replaced · new print 2B8D-44E1', bal: 50, tx: hash(6) },
+  { d: '25 SEP', st: 'INTEREST', ink: 'brass', p: 'Interest earned in Savings, 22 Sep–25 Sep', inn: 0.000412, bal: 50.000412, calc: true },
+];
+const fresh = () => ({ screen: 'landing', walletDetected: false, wallet: null, visited: false, box: null, book: [], exit: null, rpcDown: false, wrongNet: false, sheet: null, open: null, dep: null, w: null, ex: null, mv: null, tour: { stop: 1 }, hb: { ago: 2, block: 22660862 }, slowSign: false, remembered: false });
+let S = fresh();
+
+function toast(msg, dur = 3800) { const el = $('#toast'); el.textContent = msg; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), dur); }
+const live = (m) => ($('#live').textContent = m);
+const stampEl = (w, ink, sm = true, rot, id = '') => `<span ${id ? `id="${id}"` : ''} class="stamp ${sm ? 'sm' : ''} s-${ink}" style="transform:rotate(${rot ?? ((w.length * 7) % 8) - 3}deg)">${w}</span>`;
+
+function walletAsk(title, rows) {
+  return new Promise((res) => {
+    const w = $('#wpop');
+    w.innerHTML = `<div class="wp-h"><span>Simulated wallet</span><span>Arc · 5042</span></div><div class="wp-b"><b>${esc(title)}</b>${rows.map((r) => `<div class="r"><span>${esc(r[0])}</span><span>${esc(r[1])}</span></div>`).join('')}<p style="font-size:12.5px;color:#555;margin:8px 0 0">Some wallets label the fee ETH; on Arc it's USDC.</p></div><div class="wp-f"><button data-w="0">Reject</button><button data-w="1" class="ok">Confirm</button></div>`;
+    w.hidden = false; $('[data-w="1"]', w).focus();
+    w.onclick = (e) => { const b = e.target.closest('[data-w]'); if (!b) return; w.hidden = true; res(b.dataset.w === '1'); };
+  });
+}
+
+/* ---------- header, banner, footer ---------- */
+const own = () => S.box && S.box.addr === USER;
+function renderTop() {
+  const b = $('#banner');
+  if (S.exit && own() && S.screen !== 'tour') b.innerHTML = `<div class="bn bn-exit" role="alert"><span>${t('exit.banner', { countdown: `<span class="num cd">${cdText()}</span>`, addrShort: short(S.exit.to) })}</span>${S.screen === 'box' && !S.sheet ? '' : '<button class="btn ghost" style="min-height:40px;color:#fff;border-color:#fff" data-act="seeExit">See the exit</button>'}</div>`;
+  else if (S.wrongNet) b.innerHTML = `<div class="bn bn-warn">${t('err.wrongNetwork')} <button class="btn brass" style="min-height:40px" data-act="switchArc">Switch to Arc</button></div>`;
+  else if (S.rpcDown) b.innerHTML = `<div class="bn bn-grey">${t('err.rpc')}</div>`;
+  else if (S.screen === 'tour') b.innerHTML = `<div class="bn bn-tour">${t('tour.ribbon')} · HOLDER <span class="num">${short(DEMO)}</span></div>`;
+  else b.innerHTML = '';
+  const mid = S.screen === 'tour' ? `BOX NO. ${boxNo(DEMO)}` : S.screen === 'box' || S.screen === 'open' ? `BOX NO. ${boxNo(USER)}` : '';
+  $('#hdr').innerHTML = `<button class="nameplate" data-act="home" title="Back to the door">${t('landing.nameplate')}</button><div class="hdr-mid"><span class="boxplate">${mid}</span></div>${S.wallet ? `<span class="chip">${short(S.wallet.addr)} · ${fmt(S.wallet.bal)} USDC</span>` : ''}<button class="snd" data-act="sound" aria-pressed="${soundOn}">${soundOn ? 'Sound: on' : 'Sound: off'}</button>`;
+  document.title = S.exit && own() ? `EXIT PENDING · Box No. ${boxNo(USER)}` : S.screen === 'box' ? `Box No. ${boxNo(USER)} · Arc Guard` : t('meta.title');
+}
+function renderFooter() {
+  $('#ftr').innerHTML = `<p>${t('footer.disclosure')}</p><nav><a href="#" data-act="soon">Source code</a><a href="${EXPL}/address/${CONTRACT}" target="_blank" rel="noopener">Contract on Arc ↗</a><a href="#" data-act="plaque">How it works</a><a href="#" data-act="plaque">Risks</a>${own() ? '<a href="#" data-act="exitStart">Lost your key card?</a>' : ''}</nav>`;
+}
+
+/* ---------- countdown, heartbeat (seconds count locally; the block moves on each 10 s poll) ---------- */
+const cdParts = () => { const s = Math.max(0, Math.floor((S.exit.readyAt - Date.now()) / 1000)); return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 }; };
+const cdText = () => { const c = cdParts(); return t('exit.countdown', { d: c.d, hh: p2(c.h), mm: p2(c.m), ss: p2(c.s) }); };
+const handDeg = () => 360 * (1 - (S.exit.readyAt - Date.now()) / (7 * 864e5)); // points at the days left
+const hbText = () => (S.rpcDown ? 'Balances as of 14:02:31 · Arc not answering' : `Checked with Arc ${S.hb.ago} s ago · block ${S.hb.block.toLocaleString('en-US')}`);
+setInterval(() => {
+  if (!S.rpcDown) { S.hb.ago++; if (S.hb.ago >= 10) { S.hb.ago = 0; S.hb.block += 20; $$('.hb').forEach((h) => { h.classList.remove('pulse'); void h.offsetWidth; h.classList.add('pulse'); }); } }
+  $$('.hb span').forEach((s) => (s.textContent = hbText()));
+  $$('.hb').forEach((h) => h.classList.toggle('stale', S.rpcDown || S.hb.ago > 30));
+  if (S.exit) { $$('.cd').forEach((c) => (c.textContent = cdText())); const c = cdParts(); $$('.cdd').forEach((e) => (e.textContent = `${c.d}:${p2(c.h)}:${p2(c.m)}`)); $$('.chand').forEach((h) => h.setAttribute('transform', `rotate(${handDeg()})`)); }
+}, 1000);
+
+/* ---------- the door ---------- */
+function doorHTML() {
+  let bolts = '', rivets = '', ticks = '', nums = '', spokes = '';
+  for (let i = 0; i < 12; i++) bolts += `<g transform="rotate(${i * 30 + 15} 500 500)"><rect class="bolt" x="484" y="22" width="32" height="96" rx="9"/></g>`;
+  for (let i = 0; i < 36; i++) { const a = (i * 10 * Math.PI) / 180; rivets += `<circle cx="${(500 + 405 * Math.cos(a)).toFixed(1)}" cy="${(500 + 405 * Math.sin(a)).toFixed(1)}" r="5" fill="url(#rv)"/>`; }
+  for (let i = 0; i < 50; i++) ticks += `<line y1="-62" y2="${i % 5 ? -56 : -51}" stroke="#2b3035" stroke-width="${i % 5 ? 1.2 : 2.2}" transform="rotate(${i * 7.2})"/>`;
+  for (let i = 0; i < 10; i++) { const a = ((i * 36 - 90) * Math.PI) / 180; nums += `<text x="${(40 * Math.cos(a)).toFixed(1)}" y="${(40 * Math.sin(a) + 4).toFixed(1)}" text-anchor="middle" font-size="11" font-family="Cinzel" font-weight="700" fill="#2b3035">${i * 10}</text>`; }
+  for (let i = 0; i < 5; i++) spokes += `<g transform="rotate(${i * 72})"><rect x="-8" y="-92" width="16" height="74" rx="7" fill="url(#brs)" stroke="#6b5021" stroke-width="1.5"/><circle cy="-92" r="15" fill="url(#brk)" stroke="#6b5021" stroke-width="1.5"/></g>`;
+  const tag = S.exit && own() ? `<span class="tag doortag">EXIT PENDING · ${cdParts().d}d ${cdParts().h}h</span>` : '';
+  return `<div class="vault" id="vault">
+    <div class="frame"></div><div class="hinge" style="top:22%"></div><div class="hinge" style="top:69%"></div>
+    <div class="beyond"></div>
+    <div class="door" id="door">
+      <svg class="bolts" viewBox="0 0 1000 1000" aria-hidden="true"><defs><linearGradient id="boltg" x1="0" x2="1"><stop offset="0" stop-color="#5d666d"/><stop offset=".45" stop-color="#e3e7ea"/><stop offset="1" stop-color="#6b737b"/></linearGradient></defs>${bolts}</svg>
+      <div class="spun"></div>
+      <svg class="face" viewBox="0 0 1000 1000" aria-hidden="true">
+        <defs><radialGradient id="rv" cx=".35" cy=".35"><stop offset="0" stop-color="#f4f6f7"/><stop offset="1" stop-color="#5d666d"/></radialGradient><radialGradient id="dialg" cx=".4" cy=".35"><stop offset="0" stop-color="#f1f3f4"/><stop offset=".7" stop-color="#b3babf"/><stop offset="1" stop-color="#6b737b"/></radialGradient></defs>
+        <circle cx="500" cy="500" r="372" fill="none" stroke="#00000055" stroke-width="3"/><circle cx="500" cy="500" r="368" fill="none" stroke="#ffffff55" stroke-width="1.5"/>
+        <circle cx="500" cy="500" r="190" fill="none" stroke="#00000040" stroke-width="3"/><circle cx="500" cy="500" r="186" fill="none" stroke="#ffffff50" stroke-width="1.5"/>
+        ${rivets}
+        <g transform="translate(500 248)"><circle r="72" fill="#3a4046"/><circle r="66" fill="url(#dialg)" stroke="#2b3035" stroke-width="2"/>${ticks}${nums}<circle r="14" fill="#3a4046"/><path d="M0 -82 l-8 -14 h16z" fill="#8a6a2a"/></g>
+        <text x="500" y="676" text-anchor="middle" font-family="Cinzel" font-weight="700" font-size="19" letter-spacing="6" fill="#2b3035" fill-opacity=".8">TURN TO OPEN</text>
+      </svg>
+      <div class="plaque-main" aria-hidden="true">${t('landing.headline').replace(', ', ',<br>')}</div>
+      <svg class="wheel" id="wheel" viewBox="-112 -112 224 224" role="button" tabindex="0" aria-label="Turn the wheel to open">
+        <defs><linearGradient id="brs" x1="0" x2="1"><stop offset="0" stop-color="#8a6a2a"/><stop offset=".45" stop-color="#f0dca4"/><stop offset="1" stop-color="#9b7328"/></linearGradient><radialGradient id="brk" cx=".35" cy=".3"><stop offset="0" stop-color="#fff3c4"/><stop offset=".5" stop-color="#C9A45A"/><stop offset="1" stop-color="#6b5021"/></radialGradient></defs>
+        ${spokes}<circle r="34" fill="url(#brk)" stroke="#6b5021" stroke-width="2"/><circle r="15" fill="#3a2a10"/><circle r="6" fill="#E2C07A"/>
+      </svg>
+      ${tag}
+    </div>
+  </div>`;
+}
+function landing() {
+  const hasBox = own() && S.wallet;
+  const walletFirst = S.walletDetected || hasBox;
+  const bOpen = `<button class="btn ${walletFirst ? 'brass' : 'ghost'} big" data-act="${S.exit && hasBox ? 'seeExit' : 'connect'}">${S.exit && hasBox ? 'See the exit' : t('landing.cta.connect')}</button><small>${walletFirst ? t('landing.cta.connect.sub') : 'Needs a wallet with a little USDC on Arc.'}</small>`;
+  const bReal = `<button class="btn ${walletFirst ? 'ghost' : 'brass'} big" data-act="tour">${t('landing.cta.real')}</button><small>${t('landing.cta.real.sub')}</small>`;
+  return `<section class="landing">${doorHTML()}
+    <div class="lcol">
+      ${hasBox ? `<p class="welcome">Welcome back · Box No. ${boxNo(USER)}</p>` : `<div class="hours">${t('landing.hours')}</div>`}
+      <h1 class="headline">${t('landing.headline')}</h1>
+      <p class="lead">${t('landing.sub')}</p>
+      <button class="plaque-line" data-act="plaque"><span class="longp">${t('plaque.engraving')}</span><span class="shortp">${t('plaque.engraving.short')}</span><u>${t('plaque.link')}</u></button>
+      <div class="ctas">${walletFirst ? bOpen + bReal : bReal + bOpen}
+        <button class="link" data-act="practice" style="justify-self:start">or try Key 2 yourself →</button>
+      </div>
+      <div class="strip"><a href="${EXPL}/address/${CONTRACT}" target="_blank" rel="noopener">LIVE ON ARC MAINNET</a> · <a href="#" data-act="soon">OPEN SOURCE (MIT)</a> · <a href="${EXPL}/address/${CONTRACT}?tab=contract" target="_blank" rel="noopener">CONTRACT VERIFIED ↗</a></div>
+    </div></section>`;
+}
+// Signature interaction: drag the wheel; past 150° it runs the primary action.
+function bindWheel() {
+  const w = $('#wheel'); if (!w) return;
+  let dragging = false, acc = 0, last = 0, moved = false;
+  const ang = (e) => { const r = w.getBoundingClientRect(); return (Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180) / Math.PI; };
+  w.addEventListener('pointerdown', (e) => { w.setPointerCapture(e.pointerId); dragging = true; moved = false; last = ang(e); acc = 0; });
+  w.addEventListener('pointermove', (e) => {
+    if (!dragging) return; const a = ang(e); let d = a - last; if (d > 180) d -= 360; if (d < -180) d += 360; last = a;
+    acc = Math.max(0, Math.min(180, acc + d)); if (acc > 4) moved = true; w.style.transform = `rotate(${acc}deg)`;
+    if (acc >= 150) { dragging = false; S.wheelAngle = acc; primary(); }
+  });
+  const up = () => { if (!dragging) return; dragging = false; if (acc > 0) w.animate([{ transform: `rotate(${acc}deg)` }, { transform: 'rotate(0deg)' }], { duration: ms(400), easing: ease('--ease-settle') }); w.style.transform = ''; acc = 0; };
+  w.addEventListener('pointerup', up); w.addEventListener('pointercancel', up);
+  w.addEventListener('click', () => { if (!moved && !S.doorBusy) primary(); });
+  w.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); primary(); } });
+}
+const primary = () => $('.ctas .btn')?.click();
+
+// Door ceremony: wheel 180°, 12 bolts 55 ms apart, swing rotateY(-78°); capped at 2.4 s, skippable.
+async function openDoor(next) {
+  if (S.doorBusy || !$('#door')) return next();
+  S.doorBusy = true; live(t('landing.door.opening')); const tStart = performance.now();
+  const door = $('#door'), wheel = $('#wheel'), beyond = $('.beyond'), bolts = $$('.bolt');
+  const k = S.visited ? 0.26 : 1; // after the first visit in a session the door takes ~600 ms
+  const first = !S.visited; S.visited = true;
+  const anims = [];
+  const catcher = Object.assign(document.createElement('div'), { className: 'catcher', title: 'Skip' });
+  const hint = Object.assign(document.createElement('div'), { className: 'skiphint', textContent: coarse ? 'Tap to skip' : 'Click or press Esc to skip' });
+  document.body.append(catcher, hint);
+  let skipRes; const skip = new Promise((r) => (skipRes = r));
+  catcher.onclick = skipRes; const onKey = (e) => e.key === 'Escape' && skipRes(); addEventListener('keydown', onKey);
+  if (reduce) anims.push(door.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' }));
+  else {
+    if (first) vaultDoor(0, coarse ? 0.6 : 1.55);
+    const from = S.wheelAngle || 0; S.wheelAngle = 0;
+    anims.push(wheel.animate([{ transform: `rotate(${from}deg)` }, { transform: `rotate(${from + 180}deg)` }], { duration: 700 * k, easing: 'cubic-bezier(.6,0,.2,1)', fill: 'forwards' }));
+    bolts.forEach((b, i) => anims.push(b.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(50px)' }], { duration: 120 * k, delay: (60 + i * 55) * k, easing: ease('--ease-bolt'), fill: 'forwards' })));
+    if (coarse) anims.push(door.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.14)', opacity: 0 }], { duration: 600 * k, delay: 780 * k, easing: ease('--ease-door'), fill: 'forwards' }));
+    else anims.push(door.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(-78deg)' }], { duration: 1550 * k, delay: 750 * k, easing: ease('--ease-door'), fill: 'forwards' }));
+    anims.push(beyond.animate([{ opacity: 0.55 }, { opacity: 1 }], { duration: (coarse ? 600 : 1400) * k, delay: (coarse ? 780 : 800) * k, fill: 'forwards' }));
+  }
+  await Promise.race([Promise.all(anims.map((a) => a.finished)), skip]);
+  anims.forEach((a) => { try { a.finish(); } catch {} });
+  catcher.remove(); hint.remove(); removeEventListener('keydown', onKey);
+  S.doorBusy = false; S.lastDoorMs = Math.round(performance.now() - tStart); next();
+}
+
+/* ---------- wall of numbered boxes ---------- */
+function wallHTML(lit, showLit = true) {
+  const n0 = Math.max(1, +lit - 30); let h = '';
+  for (let i = 0; i < 84; i++) { const n = String(n0 + i).padStart(4, '0'); h += `<div class="wb${showLit && n === lit ? ' lit' : ''}"><span>NO. ${n}</span><i></i></div>`; }
+  return `<div class="wall" id="wall" aria-hidden="true">${h}</div>`;
+}
+
+/* ---------- open a box (4 steps) ---------- */
+function cardHTML(practice) {
+  const no = boxNo(USER);
+  return `<div class="kcard" id="kcard"><div class="kc-h"><span>ARC GUARD · SAFE DEPOSIT</span><span>${practice ? 'PRACTICE' : 'KEY CARD'}</span></div>
+    <dl><dt>BOX NO.</dt><dd>${practice ? 'none' : no}</dd><dt>HOLDER</dt><dd>${practice ? 'none' : short(USER)}</dd><dt>ISSUED</dt><dd>2026-09-25</dd><dt>CARD PRINT</dt><dd>${practice ? '5C1E-77A0' : 'A1B2-C3D4'}</dd><dt>CARD CODE</dt><dd>•••• •••• <button class="link" style="padding:0;font-size:12px" data-act="soon">Show</button></dd></dl>
+    <div class="qr"></div><div class="foot">KEY 2 OF 2 · KEEP APART FROM YOUR WALLET</div><div class="emb" aria-hidden="true">${practice ? 'PQ' : no}</div></div>`;
+}
+function openScreen() {
+  const o = S.open, no = boxNo(USER);
+  const li = (n, body) => `<li class="${o.step > n ? 'done' : ''}"><h3>${t(`open.step${n}.title`)}${o.step > n ? ' <span class="okline">✓</span>' : ''}</h3>${o.step === n ? body : ''}</li>`;
+  const s2 = o.noUsdc ? `<p class="err">${t('open.noUsdc')}</p><button class="btn brass" data-act="noUsdcAgain">${t('open.noUsdc.btn')}</button>`
+    : `<p>${t('open.step2.body')}</p><button class="btn brass" data-act="cut" id="cutBtn">${t('open.step2.btn')}</button> <span id="cutting" class="muted"></span>`;
+  const s3 = `<p>${t('open.step3.body')}</p>${cardHTML()}
+    <ul class="rules"><li>${t('card.what')}</li><li>${t('card.rule1')}</li><li>${t('card.rule2')}</li><li>${t('card.rule3')}</li><li>${t('card.rule4')}</li></ul>
+    <div class="row"><button class="btn brass" data-act="saveCard">${t('open.step3.btn.download')}</button><button class="btn ghost" data-act="saveCard" data-kind="print">${t('open.step3.btn.print')}</button><button class="btn ghost" data-act="saveCard" data-kind="copy">${t('open.step3.btn.copy')}</button></div>
+    <p class="note muted">${t('open.step3.downloadHelp')}</p>
+    <div style="border-top:1px dashed var(--paper-300);padding-top:8px"><b>${t('open.step3.check.title')}</b><p style="margin:2px 0 6px">${t('open.step3.check.body')}</p>
+    ${o.checked ? `<p class="okline" style="margin:0">${t('open.step3.check.ok', { boxNo: no })}</p>` : `<button class="btn ghost" data-act="checkCard" ${o.saved ? '' : 'disabled'}>${t('open.step3.check.btn')}</button>`}</div>
+    <label class="chk"><input type="checkbox" data-chk="confirmed" ${o.confirmed ? 'checked' : ''}><span>${t('open.step3.confirm')}</span></label>
+    <label class="chk"><input type="checkbox" data-chk="remember" ${o.remember ? 'checked' : ''}><span>${t('open.step3.remember')}</span></label>
+    ${o.remember ? `<p class="err" style="font-weight:400;margin:0 0 8px">${t('open.step3.remember.warn')}</p>` : ''}
+    <button class="btn brass big" data-act="toStep4" ${o.confirmed ? '' : 'disabled'}>Continue</button>`;
+  const s4 = `<p>${t('open.step4.body', { fee: '0.001' })}</p><button class="btn brass big" data-act="openBox" id="openBtn">${t('open.step4.btn')}</button><p id="openStatus" class="muted" aria-live="polite"></p>`;
+  const done = `<li style="position:relative"><p style="font:700 22px var(--f-body);margin:0">${t('open.done.title', { boxNo: no })}</p><p>${t('open.done.body')}</p><div style="position:absolute;right:0;top:10px">${stampEl('OPENED', 'green', false, -6, 'openStamp')}</div><button class="btn brass big" data-act="firstDeposit">${t('open.done.btn')}</button></li>`;
+  return `${wallHTML(no)}<section class="room"><div class="counter paper" id="counter">
+    <h2>${t('open.title')}</h2>
+    <p style="margin:0"><b class="num" style="font-size:20px">${t('open.boxNo', { boxNo: no })}</b></p>
+    <p class="muted note" style="margin:2px 0 0">${t('open.boxNo.hint')} ${t('open.steps.label')}</p>
+    <ol class="steps"><li class="done"><h3>${t('open.step1.title')} <span class="okline">✓</span></h3><p style="margin:0">${t('open.step1.done', { addrShort: short(USER) })}</p></li>
+      ${li(2, s2)}${li(3, s3)}${li(4, s4)}${o.step === 5 ? done : ''}</ol></div></section>`;
+}
+
+/* ---------- box view ---------- */
+function jarSVG(bal) {
+  const rows = bal <= 0 ? 0 : Math.max(1, Math.min(10, Math.round(1 + Math.log10(bal + 1) * 2.6))); // log scale: small amounts still show
+  let coins = '';
+  for (let r = 0; r < rows; r++) for (let c = 0; c < 3; c++) coins += `<ellipse cx="${44 + c * 20 + (r % 2 ? 8 : 0)}" cy="${170 - r * 11}" rx="15" ry="5.5" fill="url(#cg)" stroke="#6b5021" stroke-width="1"/>`;
+  return `<svg class="jar" viewBox="0 0 140 190" role="img" aria-label="Savings jar"><defs><linearGradient id="cg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff0bd"/><stop offset=".5" stop-color="#E2C07A"/><stop offset="1" stop-color="#8a6a2a"/></linearGradient><linearGradient id="gl" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".2" stop-color="#fff" stop-opacity=".06"/><stop offset=".8" stop-color="#fff" stop-opacity=".03"/><stop offset="1" stop-color="#fff" stop-opacity=".2"/></linearGradient><linearGradient id="lid" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#EAD49A"/><stop offset=".5" stop-color="#B08D3C"/><stop offset="1" stop-color="#6b5021"/></linearGradient></defs>
+    <g id="coins">${coins}</g>
+    <path d="M24 38 Q18 44 18 60 V168 Q18 182 34 182 H106 Q122 182 122 168 V60 Q122 44 116 38 Z" fill="url(#gl)" stroke="#dfe7ea" stroke-opacity=".55" stroke-width="2"/>
+    <path d="M30 62 V160" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round"/>
+    <rect x="20" y="16" width="100" height="24" rx="4" fill="url(#lid)" stroke="#6b5021"/><rect x="26" y="20" width="88" height="3" fill="#fff5" rx="1"/></svg>`;
+}
+function passbookRows(book) {
+  return book.map((e, i) => {
+    const inner = `<span>${e.d}</span><span class="st">${stampEl(e.st, e.ink)}${e.k2 ? stampEl('KEY 2 OK', 'green', true, 3) : ''}</span><span class="amt in">${e.inn ? '+' + (e.calc ? e.inn.toFixed(6) : fmt(e.inn)) : ''}</span><span class="amt out">${e.out ? '−' + fmt(e.out) : ''}</span><span class="amt bal">${fmt(e.bal)}</span><span></span><span class="pt">${esc(e.p)}</span>${e.calc ? '<span></span><span class="calc">Calculated, not a transaction.</span>' : ''}`;
+    return e.calc ? `<div class="pl">${inner}</div>` : `<a class="pl" href="${txUrl(e.tx)}" target="_blank" rel="noopener" title="${t('passbook.lineLink')} ↗">${inner}</a>`;
+  }).join('');
+}
+const passbookHTML = (book) => `<div class="pcols"><span>DATE</span><span>PARTICULARS</span><span style="text-align:right">IN</span><span style="text-align:right">OUT</span><span style="text-align:right">BALANCE</span></div>${book.length ? passbookRows(book) : `<p class="muted" style="margin:0">${t('passbook.empty')}</p>`}`;
+function ledgerHTML(addr, book, tour, preview) {
+  return `<aside class="ledger" id="ledger"><div class="ledger-head steel engraved"><span>${t('passbook.title', { boxNo: boxNo(addr) }).toUpperCase()}</span>${preview ? `<button class="link" style="color:var(--ink);padding:0" data-act="${tour ? 'stop" data-n="3' : 'passbook'}">All entries →</button>` : ''}</div>
+    <div class="paper passbook" id="pbook">${passbookHTML(preview ? book.slice(-3) : book)}</div>
+    <p class="pnote">${tour ? t('tour.passbookNote') : t('passbook.note')}</p></aside>`;
+}
+function boxFace(b, view) {
+  const no = boxNo(b.addr), total = b.locker + b.savings, x = S.exit && !view;
+  const dis = view ? `disabled title="${t('tour.btn.disabled')}"` : S.rpcDown ? 'disabled title="Waiting for Arc"' : '';
+  const exitBlock = x ? `<div class="exitface" id="exitface">
+      <svg class="chronobig" viewBox="-100 -100 200 200" aria-hidden="true"><circle r="97" fill="url(#bzb)"/><defs><radialGradient id="bzb" cx=".4" cy=".3"><stop offset="0" stop-color="#f3e2ae"/><stop offset=".6" stop-color="#b08d3c"/><stop offset="1" stop-color="#6b5021"/></radialGradient></defs><circle r="86" fill="#F6EFDC"/>${[...Array(7)].map((_, i) => { const a = (i * 2 * Math.PI) / 7; return `<line y1="-86" y2="-70" stroke="#1E1B16" stroke-width="3" transform="rotate(${(i * 360) / 7})"/><text x="${(56 * Math.sin(a)).toFixed(1)}" y="${(-56 * Math.cos(a) + 5).toFixed(1)}" text-anchor="middle" font-family="Courier Prime" font-weight="700" font-size="15" fill="#1E1B16">${i === 0 ? 7 : 7 - i}</text>`; }).join('')}<text y="34" text-anchor="middle" font-family="Cinzel" font-weight="700" font-size="10" letter-spacing="2" fill="#4A4034">DAYS LEFT</text><path d="M0 0 V-74" stroke="#B3261E" stroke-width="4" stroke-linecap="round" class="chand" transform="rotate(${handDeg()})"/><circle r="8" fill="#1E1B16"/></svg>
+      <div><span class="tag" id="rtag">EXIT PENDING</span>
+      <div class="cdigits"><time class="cdd">${cdParts().d}:${p2(cdParts().h)}:${p2(cdParts().m)}</time> <span style="font-size:13px;color:#e8c9c6">d:hh:mm</span></div>
+      <p>Everything (${fmt(total)} USDC) goes to <b class="num">${short(S.exit.to)}</b> on ${S.exit.when}.</p>
+      ${S.exit.to !== USER ? `<p class="bad">${short(S.exit.to)} is not your wallet.</p><p>${t('exit.notMe')}</p>` : ''}
+      <button class="btn brass big" data-act="cancelExit" style="margin-top:6px">${t('exit.cancel.btn')}</button></div></div>` : '';
+  return `<div class="table" id="table">${exitBlock}
+    <div class="case" id="case">
+      <div class="case-top"><span class="plate">BOX NO. ${no}</span><span class="holder">${t('box.holder', { addrShort: short(b.addr) })}</span></div>
+      <p class="total">${t('box.total', { total: `<b class="num">${fmt(total)}</b>` })}</p>
+      ${x ? `<p class="compact">LOCKER ${fmt(b.locker)} · SAVINGS ${fmt(b.savings)}</p>` : `<div class="bays">
+        <section class="bay"><h3>${t('box.locker.label')}</h3>
+          <div class="drawer steel" id="drawerArt"><div class="label paper"><small>LOCKER</small><b class="num" id="lockerAmt">${fmt(b.locker)}</b><em>USDC</em></div><div class="pull"></div></div>
+          <p>${t('box.locker.caption')}</p></section>
+        <section class="bay"><h3>${t('box.savings.label')}</h3>
+          <div class="jarbox"><div id="jarArt">${jarSVG(b.savings)}</div><div class="label paper" style="min-width:0;flex:1"><small>SAVINGS</small><b class="num" id="savAmt">${fmt(b.savings)}</b><em>USDC</em></div></div>
+          <p>${rateLine()} · current rate</p>
+          <p><a href="#" data-act="soon">${t('box.savings.vault')} ↗</a></p>
+          ${b.savings > 0 ? `<p>Earned so far <span class="num">${b.earned.toFixed(6)} USDC</span> <button class="qbtn" data-act="why" aria-label="Why isn't it moving?">?</button></p><p class="why" id="why" hidden>At 0.056% a year, ${fmt(b.savings)} USDC earns a millionth of a dollar about every ${Math.round(56516 / b.savings / 60)} minutes. The jar shows only what Arc reports.</p>` : '<p>Nothing in Savings yet.</p>'}
+          <p class="risk">${t('box.savings.risk')}</p></section></div>`}
+      ${total === 0 ? `<p style="margin:12px 0 0">${t('box.empty')}</p>` : ''}
+      <div class="hb${S.rpcDown ? ' stale' : ''}"><i></i><span>${hbText()}</span></div>
+    </div>
+    <div class="actions">${S.wrongNet && !view ? `<button class="btn brass" style="grid-column:1/-1" data-act="switchArc">Switch to Arc</button>` : `
+      <button class="btn brass" data-act="deposit" ${dis}>${t('box.btn.deposit')}</button>
+      <button class="btn brass" data-act="move" ${dis} ${total === 0 ? 'disabled' : ''}>${t('box.btn.move')}</button>
+      <button class="btn brass" data-act="withdraw" ${dis} ${total === 0 ? 'disabled' : ''}>${t('box.btn.withdraw')}</button>`}</div>
+    ${view ? `<p class="note" style="margin:10px 0 0;color:#cfd5d2">${t('tour.btn.disabled')}</p>` : `<div class="sublinks"><a href="#" data-act="exitStart">${t('box.link.emergency')}</a><a href="#" data-act="soon">${t('box.link.rotate')}</a></div>`}
+  </div>`;
+}
+const boxScreen = () => `${wallHTML(boxNo(USER), false)}<section class="room"><div class="boxroom">${boxFace(S.box)}${ledgerHTML(USER, S.book, false, phone())}</div></section>`;
+
+/* ---------- tour: the builder's real box, view only ---------- */
+function tourScreen() {
+  const st = S.tour.stop, b = demoBox();
+  const rail = `<nav class="rail" aria-label="Tour">${['① Box', '② Two keys', '③ Passbook', '④ Lost card', 'End'].map((l, i) => `<button data-act="stop" data-n="${i + 1}" aria-current="${st === i + 1}">${l}</button>`).join('')}</nav>`;
+  const next = st < 5 ? `<button class="btn ${st === 2 && !S.tour.replayed ? 'ghost' : 'brass'}" data-act="stop" data-n="${st + 1}" style="margin:16px 0 0">Next: ${['the two keys', 'the passbook', 'a lost card', 'what it uses on Arc'][st - 1]} →</button>` : '';
+  let body = '';
+  if (st === 1) body = `<p class="tourlead">${t('tour.lead')}</p><div class="boxroom">${boxFace(b, true)}${ledgerHTML(DEMO, demoBook(), true, true)}</div>`;
+  if (st === 2) body = `<div class="tourgrid t2"><div class="paper panel">
+      <h2>The owner took 5.00 USDC out on 23 Sep 2026.</h2>
+      <div class="slipsum"><span>5.00 USDC from Locker → ${short(DEMO)}</span><span>fee 0.0089 USDC</span></div>
+      ${keysHTML({ k1: "Owner's wallet ✓", k2: S.tour.replayed ? 'signed' : 'empty', replay: true })}
+      <div class="wslip paper" id="wslip" style="display:none"><p style="font:700 20px var(--f-body);margin:0">${t('withdraw.done.title')}</p><p style="margin:2px 0">${t('withdraw.done.body', { amount: '5.00', addrShort: short(DEMO) })}</p>
+        <p class="num note" style="margin:2px 0">Replayed from Arc's public record · 23 Sep 2026 16:41 · fee 0.0089 USDC</p>
+        <ol class="facts note"><li>The recipient was checked against the USDC blocked list.</li><li>Arc's built-in checker verified the 7,856-byte key-card signature.</li><li>The USDC moved, and the fee was paid in USDC.</li></ol>
+        <a class="btn brass" id="wlink" href="${txUrl(DEMO_TX)}" target="_blank" rel="noopener" style="opacity:0">${t('withdraw.done.explorer')} ↗</a>
+        <span class="stamp s-ink" id="wstamp">WITHDRAWN</span></div>
+      <button class="btn brass big" data-act="replay" id="replayBtn" style="margin-top:12px">Watch the owner's real withdrawal</button>
+    </div>
+    <div class="paper panel"><h2>${t('practice.title')}</h2><p>${t('practice.lead')}</p>
+      <p class="num" style="font-size:14.5px;border:1px dashed var(--ink-700);padding:8px 10px;margin:0" id="pslip">${t('practice.slip')}</p>
+      <div class="pstamps" id="pstamps"></div><div id="pchrono"></div>
+      <p id="pmsg" aria-live="polite" style="margin:6px 0"></p>
+      <div class="row"><button class="btn brass" data-act="practiceRun" id="prun">${t('tour.cta.practice')}</button><button class="btn ghost" data-act="tamper" id="ptamper" disabled>${t('practice.tamper.btn')}</button></div>
+      <p class="note muted">${t('practice.discard')}</p></div></div>`;
+  if (st === 3) body = `<div style="max-width:760px">${ledgerHTML(DEMO, demoBook(), true)}</div>`;
+  if (st === 4) body = `<div class="tourgrid"><div class="paper panel"><h2>${t('exit.title')}</h2><p><b>${t('exit.lead')}</b></p>
+      <ol class="facts"><li>${t('exit.body')}</li><li>${t('exit.why')}</li><li>${t('exit.warn.cancel')}</li></ol>
+      <p style="margin:12px 0 6px">This box used it on mainnet:</p>
+      <div class="passbook" style="max-height:none;padding-top:0;padding-bottom:0">${passbookRows(demoBook().filter((e) => /EXIT|CANCELLED/.test(e.st)))}</div></div>
+      <div><p class="sample-l">EXAMPLE: THIS BOX HAS NO EXIT PENDING</p><div class="sample"><div class="bn bn-exit">${t('exit.banner', { countdown: '6 days 23:59:41', addrShort: short(OTHER) })}</div>
+      <div class="exitface" style="margin:0;border-radius:0"><span class="tag">EXIT PENDING</span><div><p class="cdigits" style="margin:0">6:23:59</p><p>${t('exit.notMe')}</p></div></div></div></div></div>`;
+  if (st === 5) body = `<div class="paper panel" style="max-width:720px"><h2>What this uses on Arc</h2><ul class="facts">
+      <li>Fees paid in USDC</li><li>The post-quantum checker at <span class="num">0x1800…0004</span></li><li>The USDC blocked list at <span class="num">0x1800…0001</span></li>
+      <li>Sub-second finality: a stamp means the action is final</li><li>The Galaxy USDC vault on Morpho</li></ul>
+      <div class="row"><button class="btn brass" data-act="connect">${t('tour.cta')}</button><a class="btn ghost" href="#" data-act="soon">Read the code ↗</a></div></div>`;
+  return `${wallHTML(boxNo(DEMO), false)}<section class="room">${rail}${body}${next}</section>`;
+}
+
+/* ---------- two keyholes on the box front ---------- */
+const keyBow = `<svg viewBox="0 0 72 72" aria-hidden="true"><defs><linearGradient id="kb" x1="0" x2="1"><stop offset="0" stop-color="#8a6a2a"/><stop offset=".5" stop-color="#f0dca4"/><stop offset="1" stop-color="#9b7328"/></linearGradient></defs><rect x="31" y="14" width="10" height="44" rx="3" fill="url(#kb)" stroke="#6b5021"/><circle cx="36" cy="10" r="12" fill="none" stroke="url(#kb)" stroke-width="8"/></svg>`;
+function keysHTML(o) {
+  const k2 = o.k2 || 'empty';
+  const k2text = { empty: o.cancel ? 'Empty' : o.replay ? 'Empty' : t('withdraw.key2.empty'), signing: 'Card fits. Signing…', signed: o.replay ? "Owner's card ✓" : t('sign.done'), wrong: "Doesn't fit" }[k2];
+  return `<div class="boxfront" id="bfront"><div class="keys">
+      ${o.noKey1 ? '' : `<div class="kplate steel"><div class="plug ${o.glow1 ? 'glow' : ''}" id="plug1">${keyBow}</div><b>${t('withdraw.key1.label').toUpperCase()}</b><small>${o.k1}</small></div>`}
+      <div class="kplate steel" style="${o.noKey1 ? 'grid-column:1/-1' : ''}"><div class="plug ${k2 === 'signed' ? 'ok' : ''}" id="plug2">${k2 === 'empty' ? '' : '<div class="mini" id="k2card">KEY<br>CARD</div>'}</div><b>${t('withdraw.key2.label').toUpperCase()}</b><small>${k2text}</small></div>
+    </div></div><div class="wdrawer steel" id="wdrawer"></div>`;
+}
+
+/* ---------- the time-lock chronometer: honest estimate 0.9·(1−e^(−t/τ)) until the worker returns ---------- */
+function chronoHTML() {
+  let tk = ''; for (let i = 0; i < 12; i++) tk += `<line y1="-44" y2="-37" stroke="#1E1B16" stroke-width="2" transform="rotate(${i * 30})"/>`;
+  return `<div class="chrono" id="chrono" role="status" aria-label="${t('sign.aria')}"><svg viewBox="-55 -55 110 110" aria-hidden="true"><defs><radialGradient id="bz" cx=".4" cy=".3"><stop offset="0" stop-color="#f3e2ae"/><stop offset=".6" stop-color="#b08d3c"/><stop offset="1" stop-color="#6b5021"/></radialGradient></defs><circle r="53" fill="url(#bz)"/><circle r="46" fill="#F6EFDC"/>${tk}<text y="22" text-anchor="middle" font-family="Cinzel" font-size="7" font-weight="700" fill="#4A4034" letter-spacing="1">TIME LOCK</text><line id="hand" y2="-40" stroke="#B3261E" stroke-width="2.5" stroke-linecap="round"/><circle r="4" fill="#1E1B16"/></svg>
+    <div><div class="pins" aria-hidden="true">${'<i></i>'.repeat(12)}</div><div class="bar"><i id="cbar"></i></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px"><span class="elapsed" id="celapsed">0.0 s</span><button class="link" data-act="signCancel">${t('sign.cancel')}</button></div><p class="swait" id="cwait">${t('sign.wait.0')}</p></div></div>`;
+}
+const signMs = () => (S.slowSign ? 7000 : coarse || phone() ? 4200 : 860); // measured: 0.86 s desktop, 3–8 s phones
+function runSigning(host, durMs) {
+  host.innerHTML = chronoHTML();
+  const hand = $('#hand', host), bar = $('#cbar', host), el = $('#celapsed', host), wait = $('#cwait', host), pins = $$('.pins i', host);
+  const tau = durMs > 2000 ? 2000 : 400, stop = startTicking(), t0 = performance.now();
+  let cancelled = false, raf;
+  const waits = [[20000, 4], [8000, 3], [4000, 2], [1500, 1], [0, 0]];
+  const draw = (p, e) => {
+    hand.setAttribute('transform', `rotate(${p * 360})`); bar.style.transform = `scaleX(${p})`; el.textContent = (e / 1000).toFixed(1) + ' s';
+    pins.forEach((pin, i) => pin.classList.toggle('down', p >= (i + 1) / 12 - 1e-9));
+    const txt = t('sign.wait.' + waits.find(([at]) => e >= at)[1]); if (wait.textContent !== txt) wait.textContent = txt;
+  };
+  S.cancelSign = () => { cancelled = true; cancelAnimationFrame(raf); stop(); };
+  return new Promise((res) => {
+    const loop = () => {
+      if (cancelled) return res(null);
+      const e = performance.now() - t0;
+      if (e >= durMs) { draw(1, durMs); stop(); S.cancelSign = null; return res((durMs / 1000).toFixed(2)); }
+      draw(0.9 * (1 - Math.exp(-e / tau)), e); raf = requestAnimationFrame(loop);
+    };
+    loop();
+  });
+}
+
+/* ---------- withdraw choreography (sound-motion.md playWithdrawn, verbatim logic) ---------- */
+async function playWithdrawn({ keys, plate, drawer, slip, stampEl: st, link }) {
+  keyTurn(0);
+  if (reduce) { drawerSlide(0.44); stamp(0.6); for (const el of [...keys, drawer, slip, st, link]) el.classList.add('is-done'); link.focus(); return; }
+  await Promise.all(keys.map((k) => k.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(90deg)' }], { duration: ms(320), easing: ease('--ease-turn'), fill: 'forwards' }).finished));
+  plate.animate([{ transform: 'none' }, { transform: 'translateY(1.5px)' }, { transform: 'none' }], { duration: ms(90) });
+  drawerSlide(0.12);
+  await drawer.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(64%)' }], { duration: ms(900), delay: ms(120), easing: ease('--ease-drawer'), fill: 'forwards' }).finished;
+  await slip.animate([{ transform: 'translateY(24px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: ms(280), easing: ease('--ease-settle'), fill: 'forwards' }).finished;
+  stamp(0.11);
+  await st.animate([{ transform: 'scale(1.35) rotate(-8deg)', opacity: 0 }, { transform: 'scale(1) rotate(-3deg)', opacity: 1, offset: 0.24, easing: ease('--ease-press') }, { transform: 'scale(1) rotate(-3deg)', opacity: 1 }], { duration: ms(460), fill: 'forwards' }).finished;
+  link.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ms(280), fill: 'forwards' });
+  link.focus();
+}
+async function stampIn(el) {
+  if (!el) return; stamp(0); if (reduce) return;
+  const r = el.style.transform || 'rotate(-3deg)';
+  await el.animate([{ transform: `scale(1.35) ${r}`, opacity: 0 }, { transform: `scale(1) ${r}`, opacity: 0.88, offset: 0.24, easing: ease('--ease-press') }, { transform: `scale(1) ${r}`, opacity: 0.88 }], { duration: 460 }).finished;
+}
+async function coinsInto(sel, n = 3) {
+  const host = $(sel); if (!host) return;
+  for (let i = 0; i < n; i++) {
+    coin(i * 0.14);
+    if (reduce) continue;
+    const c = Object.assign(document.createElement('div'), { className: 'coin' });
+    c.style.cssText = `position:absolute;left:${38 + i * 9}%;top:0;z-index:3`; host.style.position = 'relative'; host.append(c);
+    c.animate([{ transform: 'translateY(-70px)', opacity: 0 }, { transform: 'translateY(-60px)', opacity: 1, offset: 0.1 }, { transform: `translateY(${host.clientHeight - 34}px)`, opacity: 1 }], { duration: 420, delay: i * 140, easing: ease('--ease-fall'), fill: 'forwards' }).finished.then(() => c.remove());
+  }
+  await sleep(ms(420 + (n - 1) * 140));
+}
+function addBook(e) { const last = S.book[S.book.length - 1]; S.book.push({ d: '25 SEP', bal: last ? last.bal : 0, tx: hash(S.book.length + 40), ...e }); }
+
+/* ---------- sheets (counter windows) ---------- */
+function openSheet(name) {
+  S.sheet = name; S.lastFocus = document.activeElement; renderSheet(); renderTop();
+  $('#scrim').hidden = false; const s = $('#sheet'); s.hidden = false; s.scrollTop = 0;
+  if (!reduce) s.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, easing: ease('--ease-settle') });
+  const h = $('h2', s); if (h) { h.tabIndex = -1; h.focus(); }
+}
+function hideSheet() { S.cancelSign?.(); S.cancelSign = null; S.sheet = null; $('#sheet').hidden = true; $('#scrim').hidden = true; $('#wpop').hidden = true; }
+function closeSheet() { hideSheet(); render(); S.lastFocus?.focus?.(); }
+function renderSheet() { $('#sheet').innerHTML = `<button class="x" data-act="close" aria-label="Close">×</button>` + SHEETS[S.sheet](); }
+const SHEETS = {
+  plaque: () => `<h2 id="sh-t">${t('plaque.link')}</h2><p class="num" style="font-size:15px;line-height:1.6">${esc(T['plaque.full']).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n- /g, '<br>• ').replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>')}</p>`,
+  connect: () => `<h2 id="sh-t">${t('landing.cta.connect')}</h2><p class="lead2">${t('landing.cta.connect.sub')}</p>
+    ${S.walletDetected ? '' : `<p class="err">${t('err.noWallet')}</p>`}
+    <div style="display:grid;gap:10px;margin-top:10px"><button class="btn brass big" data-act="doConnect">${S.walletDetected ? 'Simulated wallet (detected)' : 'Continue with a simulated wallet'}</button>
+      <button class="btn ghost big" data-act="soon">WalletConnect</button>${S.walletDetected ? '' : `<button class="btn ghost big" data-act="tour">${t('landing.cta.real')}</button>`}</div>
+    <p id="connErr" class="err" role="alert"></p>`,
+  passbook: () => `<h2 id="sh-t">${t('passbook.title', { boxNo: boxNo(USER) })}</h2><div class="passbook" style="max-height:none;margin:8px -12px 0">${passbookHTML(S.book)}</div><p class="note muted">${t('passbook.note')}</p>`,
+  deposit: () => depositSheet(), move: () => moveSheet(), withdraw: () => withdrawSheet(), exit: () => exitSheet(), cancel: () => cancelSheet(),
+};
+
+/* deposit, then choose */
+const depErr = (v) => { if (v === '') return t('err.amount.empty'); if (!/^\d*(\.\d{0,6})?$/.test(v)) return t('err.amount.decimals'); if (!(+v > 0)) return t('err.amount.zero'); if (+v > S.wallet.bal) return t('err.amount.overWallet', { walletBal: fmt(S.wallet.bal) }); return ''; };
+function depositSheet() {
+  const d = S.dep, a = fmt(+d.amt || 0), head = `<h2 id="sh-t">${t('deposit.title')}</h2>`;
+  if (d.step === 'slip') { const e = depErr(d.amt); return `${head}<p class="lead2">${t('deposit.lead')}</p>
+    <label class="field"><span>${t('deposit.amount.label')}</span><div class="inrow"><input id="amt" class="amt" inputmode="decimal" autocomplete="off" placeholder="${t('deposit.amount.placeholder')}" value="${esc(d.amt)}"><button class="btn ghost" data-act="depMax">${t('deposit.max')}</button></div></label>
+    <p class="num" style="margin:4px 0">${t('deposit.wallet', { walletBal: fmt(S.wallet.bal) })}</p>
+    <p id="amtErr" class="err" role="alert">${d.amt === '' ? '' : e}</p>
+    <button class="btn brass big" id="depNext" data-act="depNext" ${e ? 'disabled' : ''}>Next</button>
+    <p class="note muted">${t('deposit.feeNote')}</p>`; }
+  if (d.step === 's1' || d.step === 's2') return `${head}<div class="slipsum"><span>${a} USDC → your Locker</span><button class="link" data-act="depBack">Change</button></div>
+    <p><b>${d.step === 's1' ? t('deposit.step1', { amount: a }) : 'Permission given. Now the deposit. ' + t('deposit.step2', { amount: a })}</b></p>
+    <p class="note muted">Your wallet will show this. Fee about 0.001 USDC, paid to Arc.</p>
+    <button class="btn brass big" data-act="${d.step === 's1' ? 'depApprove' : 'depDeposit'}" id="depBtn">${d.step === 's1' ? t('deposit.step1.btn') : t('deposit.step2.btn', { amount: a })}</button>
+    <p id="depStatus" aria-live="polite" class="${d.err ? 'err' : 'muted'}">${d.err || ''}</p>`;
+  const cents = ((+d.amt * RATE) / 100 * 100).toFixed(1);
+  const doneTop = `<div style="position:relative;padding-right:150px;min-height:54px"><p style="font-size:19px;margin:0"><b>${t('deposit.done', { amount: a })}</b></p><div style="position:absolute;right:4px;top:4px">${stampEl(t('deposit.done.stamp'), 'green', false, -5, 'depStamp')}</div></div>
+    <div class="drawer steel" id="depTray" style="height:74px;margin:10px 0"><div class="label paper" style="padding:4px 10px"><small>LOCKER</small><b class="num" style="font-size:22px">${fmt(S.box.locker)}</b></div></div>`;
+  if (d.step === 'done') return head + doneTop;
+  if (d.step === 'chosen') return `${head}${doneTop}<p style="font-size:18px;margin:14px 0 8px">${d.chosen === 'savings' ? t('choose.done.savings', { amount: a }) : t('choose.done.locker', { amount: a })}</p>${d.chosen === 'savings' ? `<p>${stampEl('SAVED', 'brass', false, 3, 'savStamp')}</p>` : ''}<button class="btn brass big" data-act="close">${t('withdraw.done.close')}</button>`;
+  return `${head}${doneTop}<div id="choosePanel"><h3 style="font:700 21px/1.3 var(--f-body);margin:14px 0 0">${t('choose.title')}</h3>
+    <div class="choose">
+      <div class="door2"><h3>${t('choose.locker.title')}</h3><p>${t('choose.locker.body')}</p><button class="btn ghost" data-act="keepLocker" ${d.step === 'moving' ? 'disabled' : ''}>${t('choose.locker.btn')}</button></div>
+      <div class="door2"><h3>${t('choose.savings.title')}</h3><p>${t('choose.savings.vault')}</p><p>${rateLine()}</p><p class="num" style="font-size:14px">About ${cents}¢ a year on ${a} USDC</p><p><b>${t('choose.savings.risk')}</b></p><p class="note muted">${t('choose.savings.fee')}</p><button class="btn brass" data-act="toSavings" ${d.step === 'moving' ? 'disabled' : ''}>${t('choose.savings.btn')}</button></div>
+    </div><p class="note muted" id="chooseStatus" aria-live="polite">${d.step === 'moving' ? 'Arc is recording the move…' : t('choose.footnote')}</p>
+    <details><summary>What is the Galaxy USDC vault?</summary><p>${t('choose.details')}</p></details></div>`;
+}
+
+/* move */
+function moveSheet() {
+  const m = S.mv, max = m.dir === 'toSavings' ? S.box.locker : S.box.savings, n = +m.amt;
+  const e = m.amt === '' ? '' : !(n > 0) ? t('err.amount.zero') : n > max ? (m.dir === 'toSavings' ? t('err.amount.overLocker', { locker: fmt(max) }) : t('err.amount.overSavings', { savings: fmt(max) })) : '';
+  if (m.done) return `<h2 id="sh-t">${t('move.title')}</h2><p style="font-size:18px">${t(m.dir === 'toSavings' ? 'move.done.toSavings' : 'move.done.toLocker', { amount: fmt(n) })}</p><p>${stampEl(m.dir === 'toSavings' ? 'SAVED' : 'TO LOCKER', 'brass', false, -3, 'mvStamp')}</p><button class="btn brass big" data-act="close">${t('withdraw.done.close')}</button>`;
+  return `<h2 id="sh-t">${t('move.title')}</h2><p class="lead2">${t('move.body')}</p>
+    <label class="radio"><input type="radio" name="dir" value="toSavings" ${m.dir === 'toSavings' ? 'checked' : ''}> ${t('move.toSavings')} <span class="num muted">(up to ${fmt(S.box.locker)})</span></label>
+    <label class="radio"><input type="radio" name="dir" value="toLocker" ${m.dir === 'toLocker' ? 'checked' : ''}> ${t('move.toLocker')} <span class="num muted">(up to ${fmt(S.box.savings)})</span></label>
+    <label class="field"><span>${t('move.amount')}</span><div class="inrow"><input id="mamt" class="amt" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${esc(m.amt)}"><button class="btn ghost" data-act="moveMax">${t('move.max')}</button></div></label>
+    <p id="mErr" class="err" role="alert">${e}</p>${m.dir === 'toSavings' ? `<p class="note"><b>${t('box.savings.risk')}</b></p>` : ''}
+    <button class="btn brass big" data-act="doMove" ${e || m.amt === '' ? 'disabled' : ''}>${t('move.btn', { amount: fmt(n || 0) })}</button><p id="mStatus" class="muted" aria-live="polite"></p>`;
+}
+
+/* withdraw: slip → keys → receipt */
+const wAmt = () => ({ l: +S.w.l || 0, s: +S.w.s || 0 });
+const wTo = () => (S.w.to === 'self' ? USER : S.w.toAddr || '');
+function wErr() { const { l, s } = wAmt(); if (l > S.box.locker) return t('err.amount.overLocker', { locker: fmt(S.box.locker) }); if (s > S.box.savings) return t('err.amount.overSavings', { savings: fmt(S.box.savings) }); if (S.w.to === 'other' && S.w.toAddr && !/^0x[0-9a-fA-F]{40}$/.test(S.w.toAddr)) return t('err.to.invalid'); return ''; }
+function withdrawSheet() {
+  const w = S.w, { l, s } = wAmt(), amt = l + s, head = `<h2 id="sh-t">${t('withdraw.title')}</h2>`;
+  if (w.phase === 'slip') {
+    const e = wErr(), ok = !e && amt > 0 && (w.to === 'self' || (/^0x[0-9a-fA-F]{40}$/.test(w.toAddr || '') && w.checkedAddr));
+    return `${head}<p class="lead2">${t('withdraw.lead')}</p>
+    <label class="field"><span>${t('withdraw.from.locker', { locker: fmt(S.box.locker) })}</span><div class="inrow"><input id="wl" class="amt sm" inputmode="decimal" placeholder="0.00" value="${esc(w.l)}"><button class="btn ghost" data-act="wMax" data-k="l">All</button></div></label>
+    <label class="field"><span>${t('withdraw.from.savings', { savings: fmt(S.box.savings) })}</span><div class="inrow"><input id="ws" class="amt sm" inputmode="decimal" placeholder="0.00" value="${esc(w.s)}"><button class="btn ghost" data-act="wMax" data-k="s">All</button></div></label>
+    <div class="field"><span>${t('withdraw.to.label')}</span>
+      <label class="radio"><input type="radio" name="wto" value="self" ${w.to === 'self' ? 'checked' : ''}> ${t('withdraw.to.self', { addrShort: short(USER) })}</label>
+      <label class="radio"><input type="radio" name="wto" value="other" ${w.to === 'other' ? 'checked' : ''}> ${t('withdraw.to.other')}</label>
+      ${w.to === 'other' ? `<input id="wto" class="amt sm" style="font-size:15px" placeholder="0x…" value="${esc(w.toAddr || '')}"><p class="note err" style="font-weight:400;margin:6px 0 0">${t('withdraw.to.other.warn')}</p><label class="chk"><input type="checkbox" id="wchk" ${w.checkedAddr ? 'checked' : ''}><span>I checked every character</span></label>` : ''}</div>
+    <p id="wErr" class="err" role="alert">${e}</p>
+    ${ok ? `<p class="num" style="font-size:15px">${t('withdraw.summary', { amount: fmt(amt), addrShort: short(wTo()) })}</p>` : ''}
+    <button class="btn brass big" data-act="wNext" ${ok ? '' : 'disabled'}>Next: keys</button>
+    <p class="note muted">${t('withdraw.slipNote', { minutes: 15 })}</p>`;
+  }
+  const k2 = w.card === 'wrong' ? 'wrong' : w.sig ? 'signed' : w.card === 'ok' ? 'signing' : 'empty';
+  const sum = `<div class="slipsum"><span>${fmt(amt)} USDC from ${l && s ? 'Locker + Savings' : l ? 'Locker' : 'Savings'} → ${wTo() === USER ? 'your wallet ' : ''}${short(wTo())} · fee about 0.009 USDC</span>${w.phase === 'receipt' ? '' : '<button class="link" data-act="wChange">Change</button>'}</div>`;
+  const loader = (k2 === 'empty' || k2 === 'wrong') ? `<p style="text-align:center;margin:10px 0 0" class="note">${t('card.load.drop')}</p><div class="loadrow"><button class="btn brass" data-act="pickCard">${t('card.load.btn.file')}</button><button class="btn ghost" data-act="loadCard" data-c="ok">${t('card.load.btn.type')}</button>${S.remembered ? `<button class="btn ghost" data-act="loadCard" data-c="ok">${t('card.load.btn.remembered')}</button>` : ''}</div><div id="picker"></div>
+    <p class="note muted" style="text-align:center;margin:6px 0 0">${t('card.load.privacy')}</p><p style="text-align:center;margin:4px 0 0"><a href="#" data-act="exitStart">I don't have my key card →</a></p>` : '';
+  return `${head}${sum}${keysHTML({ k1: t('withdraw.key1.ok', { addrShort: short(USER) }), k2, glow1: w.sig && w.phase === 'keys' })}
+    ${k2 === 'wrong' ? `<p class="err" role="alert">${t('err.card.otherBox', { otherBox: '0815', boxNo: boxNo(USER) })}</p>` : ''}
+    ${k2 === 'signing' ? `<p class="okline" style="margin:8px 0 0">${t('card.load.ok', { 'A1B2-C3D4': 'A1B2-C3D4', boxNo: boxNo(USER) })}</p>` : ''}
+    <div id="chronoHost"></div>${w.phase === 'keys' ? loader : ''}
+    ${w.sig && w.phase === 'keys' ? `<div class="row" style="margin:12px 0">${stampEl('PQ SIGNED', 'ink', true, -3)} <span class="note">7,856-byte signature, made on this device in ${w.sigSecs} s</span></div>` : ''}
+    ${w.phase === 'keys' ? `<button class="btn brass big" data-act="turnKeys" id="turnBtn" ${w.sig ? '' : 'disabled'}>${t('withdraw.turn.btn')}</button><p class="note muted" style="margin:6px 0 0">${t('withdraw.turn.sub')}</p><p id="wStatus" aria-live="polite" class="${w.err ? 'err' : 'muted'}">${w.err || ''}</p>` : ''}
+    ${w.phase === 'receipt' ? `<div class="wslip paper${w.instant ? ' is-done' : ''}" id="wslip"><p style="font:700 21px var(--f-body);margin:0">${t('withdraw.done.title')}</p><p style="margin:2px 0">${t('withdraw.done.body', { amount: fmt(amt), addrShort: short(wTo()) })}</p>
+      <p class="num" style="margin:2px 0;font-size:14px">${t('withdraw.done.receipt', { txShort: short(w.tx) })}</p>
+      <p style="margin:10px 0"><a class="btn brass${w.instant ? ' is-done' : ''}" id="wlink" href="${txUrl(w.tx)}" target="_blank" rel="noopener" style="opacity:0">${t('withdraw.done.explorer')} ↗</a></p>
+      <p class="num" style="margin:4px 0;font-size:14.5px">${t('withdraw.done.left', { total: fmt(S.box.locker + S.box.savings) })}</p>
+      <details><summary>Details</summary><div class="kv"><span>function</span><span>withdraw</span><span>gas used</span><span>441,208</span><span>fee</span><span>0.0088 USDC</span><span>signature</span><span>7,856 bytes</span><span>checker</span><span>0x1800…0004</span><span>blocked list</span><span>0x1800…0001</span><span>block</span><span>${S.hb.block.toLocaleString('en-US')} · 25 Sep 2026</span></div></details>
+      <button class="btn ghost" data-act="close">${t('withdraw.done.close')}</button>
+      <span class="stamp s-ink${w.instant ? ' is-done' : ''}" id="wstamp" style="transform:rotate(-3deg)">${t('withdraw.done.stamp')}</span></div>` : ''}`;
+}
+async function loadCard(which) {
+  const w = S.sheet === 'cancel' ? S.ex : S.w;
+  w.card = which; w.sig = null; w.err = ''; renderSheet();
+  keyInsert(0);
+  const card = $('#k2card');
+  if (card && !reduce) await card.animate([{ transform: 'translateY(-40px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: ease('--ease-settle') }).finished;
+  if (which === 'wrong') { errorBuzz(0); if (!reduce) $('#plug2').animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-8deg)' }, { transform: 'rotate(6deg)' }, { transform: 'rotate(-3deg)' }, { transform: 'rotate(0)' }], { duration: 420 }); return; }
+  const secs = await runSigning($('#chronoHost'), signMs());
+  if (!secs || !S.sheet) return;
+  w.sig = true; w.sigSecs = secs; renderSheet();
+  $(S.sheet === 'cancel' ? '#cancelBtn' : '#turnBtn')?.focus();
+}
+async function turnKeys() {
+  const w = S.w, { l, s } = wAmt(), amt = l + s;
+  $('#turnBtn').disabled = true; $('#wStatus').className = 'muted'; $('#wStatus').textContent = t('withdraw.waitWallet');
+  const ok = await walletAsk('Withdraw from your box (Key 1)', [['Sends', `${fmt(amt)} USDC to ${short(wTo())}`], ['Fee', 'about 0.009 USDC'], ['Contract', short(CONTRACT)]]);
+  if (!ok) { w.err = t('err.rejected') + ' Both keys stay in the locks.'; renderSheet(); return; }
+  $('#wStatus').textContent = t('withdraw.confirming');
+  await sleep(1300);
+  w.tx = hash(1234 + S.book.length);
+  S.box.locker -= l; S.box.savings -= s; S.wallet.bal += amt;
+  addBook({ st: 'WITHDRAWN', ink: 'ink', k2: true, p: 'Paid to ' + short(wTo()), out: amt, bal: S.box.locker + S.box.savings, tx: w.tx });
+  w.phase = 'receipt'; renderSheet(); renderTop();
+  await playWithdrawn({ keys: [$('#plug1'), $('#plug2')], plate: $('#bfront'), drawer: $('#wdrawer'), slip: $('#wslip'), stampEl: $('#wstamp'), link: $('#wlink') });
+}
+
+/* emergency exit: start, then cancel with the key card */
+const exitWhen = () => new Date(Date.now() + 7 * 864e5).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+function exitSheet() {
+  const x = S.ex, total = fmt(S.box.locker + S.box.savings), to = x.to === 'self' ? USER : OTHER;
+  if (x.step === 'explain') return `<h2 id="sh-t">${t('exit.title')}</h2><p><b>${t('exit.lead')}</b></p><p>${t('exit.body')}</p><p>${t('exit.why')}</p><p class="note">${t('exit.found')}</p><button class="btn brass big" data-act="exitStep" data-s="dest">Continue</button>`;
+  if (x.step === 'dest') return `<h2 id="sh-t">${t('exit.to.label')}</h2>
+    <label class="radio"><input type="radio" name="xto" value="self" ${x.to === 'self' ? 'checked' : ''}> ${t('exit.to.self', { addrShort: short(USER) })}</label>
+    <label class="radio"><input type="radio" name="xto" value="other" ${x.to === 'other' ? 'checked' : ''}> ${t('exit.to.other')} <span class="num muted">(${short(OTHER)} in this prototype)</span></label>
+    ${x.to === 'other' ? `<p class="err" style="font-weight:400">${t('exit.warn.address')}</p>` : ''}<button class="btn brass big" data-act="exitStep" data-s="confirm">Continue</button>`;
+  return `<h2 id="sh-t">${t('exit.confirm', { total, addrShort: short(to) })}</h2><p class="num">Opens ${exitWhen()} (your time)</p><p>${t('exit.warn.cancel')}</p><p>${t('exit.warn.after')}</p>
+    <div class="row"><button class="btn brass" data-act="exitGo">${t('exit.confirm.yes')}</button><button class="btn ghost" data-act="exitStep" data-s="dest">${t('exit.confirm.no')}</button></div><p id="xStatus" class="muted" aria-live="polite"></p>`;
+}
+function cancelSheet() {
+  const x = S.ex;
+  if (x.done) return `<h2 id="sh-t">${t('exit.cancel.done')}</h2><p>${stampEl('CANCELLED', 'green', false, -4, 'cStamp')}</p>${x.wasOther ? `<p><b>Someone may have your wallet. Move everything to a new wallet now.</b></p>` : ''}<button class="btn brass big" data-act="close">${t('withdraw.done.close')}</button>`;
+  const k2 = x.card === 'wrong' ? 'wrong' : x.sig ? 'signed' : x.card === 'ok' ? 'signing' : 'empty';
+  return `<h2 id="sh-t">${t('exit.cancel.btn')}</h2><p class="lead2">${t('exit.cancel.body')}</p>${keysHTML({ noKey1: true, cancel: true, k2 })}
+    ${k2 === 'wrong' ? `<p class="err" role="alert">${t('err.card.otherBox', { otherBox: '0815', boxNo: boxNo(USER) })}</p>` : ''}
+    <div id="chronoHost"></div>
+    ${k2 === 'empty' || k2 === 'wrong' ? `<div class="loadrow"><button class="btn brass" data-act="pickCard">${t('card.load.btn.file')}</button><button class="btn ghost" data-act="loadCard" data-c="ok">${t('card.load.btn.type')}</button></div><div id="picker"></div>` : ''}
+    ${x.sig ? `<div class="row" style="margin:12px 0">${stampEl('PQ SIGNED', 'ink', true, -3)} <span class="note">${t('sign.done')}</span></div>` : ''}
+    <button class="btn brass big" id="cancelBtn" data-act="cancelSend" ${x.sig ? '' : 'disabled'}>Cancel the exit</button><p class="note muted">Any wallet can send it. Fee about 0.009 USDC.</p><p id="cStatus" class="muted" aria-live="polite"></p>`;
+}
+
+/* ---------- screens + routing ---------- */
+const SCREENS = { landing, open: openScreen, box: boxScreen, tour: tourScreen };
+function render() {
+  renderTop(); $('#app').innerHTML = SCREENS[S.screen](); renderFooter();
+  document.body.dataset.screen = S.screen;
+  if (S.screen === 'landing') bindWheel();
+}
+function go(screen, enter) {
+  S.screen = screen; render(); scrollTo(0, 0);
+  if (reduce || !enter) return;
+  if (enter === 'push') { // the view pushes into the wall of boxes; one box is lit
+    $('#wall').animate([{ transform: 'scale(1)', opacity: 0.6 }, { transform: 'scale(1.6)', opacity: 1 }], { duration: 1200, easing: ease('--ease-door'), fill: 'forwards' });
+    $('#counter').animate([{ opacity: 0, transform: 'translateY(30px)' }, { opacity: 1, transform: 'none' }], { duration: 600, delay: 500, easing: ease('--ease-settle'), fill: 'backwards' });
+  }
+  if (enter === 'slide') { drawerSlide(0); $('.table')?.animate([{ transform: 'translateY(-40px) scale(.95)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 900, easing: ease('--ease-drawer') }); }
+}
+const viaDoor = (next) => (S.screen === 'landing' ? openDoor(next) : next());
+
+/* ---------- actions ---------- */
+const A = {
+  home: () => { hideSheet(); S.screen = 'landing'; render(); },
+  sound: () => { setSound(!soundOn); renderTop(); },
+  soon: () => toast('Prototype: this opens the repo, the vault page or the card code in the real app.'),
+  plaque: () => openSheet('plaque'),
+  close: () => closeSheet(),
+  why: (b) => { const w = $('#why'); w.hidden = !w.hidden; b.setAttribute('aria-expanded', !w.hidden); },
+  tour: () => { hideSheet(); S.tour = { stop: 1 }; viaDoor(() => go('tour', 'slide')); },
+  practice: () => { S.tour = { stop: 2 }; viaDoor(() => go('tour', 'slide')); },
+  stop: (b) => { S.tour = { stop: +b.dataset.n }; go('tour'); },
+  connect: () => (S.wallet && own() ? viaDoor(() => go('box', 'slide')) : openSheet('connect')),
+  seeExit: () => { hideSheet(); viaDoor(() => go('box')); },
+  goBox: () => { hideSheet(); go('box'); },
+  switchArc: async () => { if (await walletAsk('Switch to Arc?', [['Network', 'Arc · 5042'], ['Fee token', 'USDC']])) { S.wrongNet = false; render(); } },
+  doConnect: async () => {
+    if (!(await walletAsk('Connect to Arc Guard?', [['Account', short(USER)], ['Network', 'Arc (added for you)']]))) { $('#connErr').textContent = t('err.rejected'); return; }
+    S.wallet = { addr: USER, bal: 60 }; hideSheet(); renderTop();
+    viaDoor(() => { if (own()) go('box', 'slide'); else { S.open = { step: 2 }; go('open', 'push'); } });
+  },
+  noUsdcAgain: () => { S.open = { step: 2 }; go('open'); },
+  cut: async () => {
+    $('#cutBtn').disabled = true; $('#cutting').textContent = t('open.step2.working'); await sleep(600);
+    S.open.step = 3; go('open'); keyInsert(0);
+    if (!reduce) $('#kcard').animate([{ transform: 'translate(-60px,-160px) rotate(-16deg)', opacity: 0 }, { transform: 'rotate(-1.5deg)', opacity: 1 }], { duration: 600, easing: ease('--ease-settle') });
+  },
+  saveCard: (b) => {
+    if (!b.dataset.kind) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ note: `Arc Guard key card for Box No. ${boxNo(USER)}. Keep apart from your wallet. Never share.`, prototype: true, print: 'A1B2-C3D4' }, null, 2)], { type: 'application/json' })); a.download = `pq-guard-key-card-box-${boxNo(USER)}.json`; a.click(); toast('Saved pq-guard-key-card-box-' + boxNo(USER) + '.json (prototype card, opens nothing).'); }
+    else if (b.dataset.kind === 'copy') { navigator.clipboard?.writeText('ARC GUARD KEY CARD · PROTOTYPE · A1B2-C3D4').catch(() => {}); toast(t('open.step3.copied')); }
+    else toast('Prototype: the print dialog opens here.');
+    S.open.saved = true; go('open');
+  },
+  checkCard: async (b) => { b.disabled = true; b.textContent = 'Checking…'; await sleep(500); S.open.checked = true; go('open'); toast(t('open.step3.check.ok', { boxNo: boxNo(USER) })); },
+  toStep4: () => { S.open.step = 4; go('open'); },
+  openBox: async () => {
+    const st = $('#openStatus'); $('#openBtn').disabled = true; st.textContent = t('open.step4.waiting');
+    if (!(await walletAsk('Open box (Key 1)', [['Action', 'Open Box No. ' + boxNo(USER)], ['Fee', 'about 0.001 USDC']]))) { st.className = 'err'; st.textContent = t('err.rejected'); $('#openBtn').disabled = false; return; }
+    st.textContent = t('open.step4.confirming'); await sleep(1100);
+    S.box = { addr: USER, locker: 0, savings: 0, earned: 0 }; S.book = []; addBook({ st: 'OPENED', ink: 'green', p: 'Box opened · card A1B2-C3D4', bal: 0 });
+    S.open.step = 5; go('open'); stampIn($('#openStamp'));
+  },
+  firstDeposit: () => { go('box', 'slide'); A.deposit(); },
+  deposit: () => { S.dep = { step: 'slip', amt: '' }; openSheet('deposit'); $('#amt')?.focus(); },
+  depMax: () => { S.dep.amt = String(Math.max(0, Math.floor((S.wallet.bal - 0.05) * 100) / 100)); renderSheet(); },
+  depNext: () => { S.dep.step = 's1'; renderSheet(); },
+  depBack: () => { S.dep.step = 'slip'; renderSheet(); },
+  depApprove: async () => {
+    $('#depBtn').disabled = true; $('#depStatus').textContent = t('deposit.waiting');
+    if (!(await walletAsk('Give permission (Key 1)', [['Allow the box to take', fmt(+S.dep.amt) + ' USDC, exactly'], ['Fee', 'about 0.001 USDC']]))) { S.dep.err = t('err.approve.failed'); renderSheet(); return; }
+    S.dep.err = ''; S.dep.step = 's2'; renderSheet();
+  },
+  depDeposit: async () => {
+    const a = +S.dep.amt; $('#depBtn').disabled = true; $('#depStatus').textContent = t('deposit.waiting');
+    if (!(await walletAsk('Deposit (Key 1)', [['Deposit', fmt(a) + ' USDC into your Locker'], ['Fee', 'about 0.001 USDC']]))) { S.dep.err = t('err.rejected'); renderSheet(); return; }
+    $('#depStatus').textContent = t('deposit.confirming'); await sleep(900);
+    S.box.locker += a; S.wallet.bal -= a; addBook({ st: 'DEPOSITED', ink: 'green', p: 'Deposit from ' + short(USER), inn: a, bal: S.box.locker + S.box.savings });
+    S.dep.step = 'done'; renderSheet(); render(); await coinsInto('#depTray'); await stampIn($('#depStamp'));
+    await sleep(ms(700)); if (S.sheet !== 'deposit') return;
+    S.dep.step = 'choose'; renderSheet();
+    if (!reduce) $('#choosePanel').animate([{ opacity: 0, transform: 'translateY(30px)' }, { opacity: 1, transform: 'none' }], { duration: 600, easing: ease('--ease-drawer') });
+  },
+  keepLocker: () => { S.dep.step = 'chosen'; S.dep.chosen = 'locker'; renderSheet(); },
+  toSavings: async () => {
+    const a = +S.dep.amt; S.dep.step = 'moving'; renderSheet();
+    if (!(await walletAsk('Move to Savings (Key 1)', [['Move', fmt(a) + ' USDC Locker → Savings'], ['Fee', 'about 0.001 USDC']]))) { S.dep.step = 'choose'; renderSheet(); $('#chooseStatus').className = 'err'; $('#chooseStatus').textContent = t('err.rejected') + ' It stays in your Locker.'; return; }
+    await sleep(900); S.box.locker -= a; S.box.savings += a; S.box.earned = 0; addBook({ st: 'SAVED', ink: 'brass', p: `Locker → Savings · ${fmt(a)}`, bal: S.box.locker + S.box.savings });
+    S.dep.step = 'chosen'; S.dep.chosen = 'savings'; renderSheet(); render(); coin(0); coin(0.14); coin(0.28); stampIn($('#savStamp'));
+  },
+  passbook: () => openSheet('passbook'),
+  move: () => { S.mv = { dir: S.box.locker > 0 ? 'toSavings' : 'toLocker', amt: '' }; openSheet('move'); },
+  moveMax: () => { S.mv.amt = String(S.mv.dir === 'toSavings' ? S.box.locker : S.box.savings); renderSheet(); },
+  doMove: async () => {
+    const m = S.mv, a = +m.amt;
+    if (!(await walletAsk('Move (Key 1)', [['Move', `${fmt(a)} USDC ${m.dir === 'toSavings' ? 'Locker → Savings' : 'Savings → Locker'}`], ['Fee', 'about 0.001 USDC']]))) { $('#mStatus').className = 'err'; $('#mStatus').textContent = t('err.rejected'); return; }
+    $('#mStatus').textContent = 'Arc is recording the move…'; await sleep(900);
+    if (m.dir === 'toSavings') { S.box.locker -= a; S.box.savings += a; } else { S.box.savings -= a; S.box.locker += a; }
+    addBook({ st: m.dir === 'toSavings' ? 'SAVED' : 'TO LOCKER', ink: 'brass', p: m.dir === 'toSavings' ? `Locker → Savings · ${fmt(a)}` : `Savings → Locker · ${fmt(a)}`, bal: S.box.locker + S.box.savings });
+    m.done = true; renderSheet(); render(); coin(0); stampIn($('#mvStamp'));
+  },
+  withdraw: () => { S.w = { phase: 'slip', l: '', s: '', to: 'self' }; openSheet('withdraw'); },
+  wMax: (b) => { S.w[b.dataset.k] = String(b.dataset.k === 'l' ? S.box.locker : S.box.savings); renderSheet(); },
+  wNext: () => { S.w.phase = 'keys'; renderSheet(); },
+  wChange: () => { S.cancelSign?.(); Object.assign(S.w, { phase: 'slip', card: null, sig: null, err: '' }); renderSheet(); },
+  pickCard: () => { $('#picker').innerHTML = `<div class="picker" role="group" aria-label="Choose a file (simulated)"><button data-act="loadCard" data-c="ok">📄 pq-guard-key-card-box-${boxNo(USER)}.json</button><button data-act="loadCard" data-c="wrong">📄 pq-guard-key-card-box-0815.json</button></div>`; $('#picker button').focus(); },
+  loadCard: (b) => loadCard(b.dataset.c),
+  signCancel: () => { S.cancelSign?.(); S.cancelSign = null; const w = S.sheet === 'cancel' ? S.ex : S.w; w.card = null; renderSheet(); toast('Signing cancelled. Nothing has been sent.'); },
+  turnKeys: () => turnKeys(),
+  exitStart: () => { if (!own()) return toast('Open your own box first.'); hideSheet(); S.ex = { step: 'explain', to: 'self' }; openSheet('exit'); },
+  exitStep: (b) => { S.ex.step = b.dataset.s; renderSheet(); },
+  exitGo: async () => {
+    const to = S.ex.to === 'self' ? USER : OTHER; $('#xStatus').textContent = 'Waiting for your wallet…';
+    if (!(await walletAsk('Start emergency exit (Key 1)', [['Pays everything to', short(to)], ['Opens', exitWhen()], ['Fee', 'about 0.001 USDC']]))) { $('#xStatus').className = 'err'; $('#xStatus').textContent = t('err.rejected'); return; }
+    await sleep(900); startExit(to, true);
+  },
+  cancelExit: () => { S.ex = { card: null, wasOther: S.exit.to !== USER }; openSheet('cancel'); },
+  cancelSend: async () => {
+    $('#cancelBtn').disabled = true; $('#cStatus').textContent = 'Waiting for your wallet…';
+    if (!(await walletAsk('Cancel the exit', [['Signed by', 'your key card'], ['Fee', 'about 0.009 USDC']]))) { $('#cStatus').className = 'err'; $('#cStatus').textContent = t('err.rejected'); $('#cancelBtn').disabled = false; return; }
+    $('#cStatus').textContent = 'Arc is checking your key card…'; await sleep(1100);
+    S.exit = null; addBook({ st: 'CANCELLED', ink: 'green', p: 'Emergency exit cancelled with key card' });
+    S.ex.done = true; renderSheet(); render(); emergencyBell(0); stampIn($('#cStamp'));
+  },
+  practiceRun: async () => {
+    const ps = $('#pstamps'), host = $('#pchrono'), msg = $('#pmsg'); $('#prun').disabled = true; ps.innerHTML = ''; msg.textContent = '';
+    await sleep(ms(600)); keyInsert(0); ps.insertAdjacentHTML('beforeend', stampEl('CUT', 'ink', true, -3, 'ps1')); stampIn($('#ps1'));
+    const secs = await runSigning(host, signMs()); if (!secs) { $('#prun').disabled = false; return; }
+    host.innerHTML = ''; ps.insertAdjacentHTML('beforeend', stampEl(`SIGNED ${secs} s`, 'ink', true, 2, 'ps2')); stampIn($('#ps2'));
+    msg.textContent = t('practice.step3.working'); await sleep(255);
+    ps.insertAdjacentHTML('beforeend', stampEl(`${t('practice.ok.stamp')} 255 ms`, 'green', false, -4, 'ps3')); stampIn($('#ps3'));
+    msg.textContent = t('practice.ok', { ms: 255 }); $('#ptamper').disabled = false; $('#ptamper').focus();
+  },
+  tamper: async (b) => {
+    b.disabled = true; $('#pslip').textContent = $('#pslip').textContent.replace('10.00', '90.00'); $('#pmsg').textContent = t('practice.tamper.done') + ' ' + t('practice.step3.working');
+    await sleep(300); $('#pstamps').insertAdjacentHTML('beforeend', stampEl(t('practice.bad.stamp'), 'red', false, 3, 'ps4')); errorBuzz(0); stampIn($('#ps4')); $('#pmsg').textContent = t('practice.bad');
+  },
+  replay: async (b) => {
+    b.disabled = true; S.tour.replayed = true; $('#wslip').style.display = 'block';
+    await playWithdrawn({ keys: [$('#plug1'), $('#plug2')], plate: $('#bfront'), drawer: $('#wdrawer'), slip: $('#wslip'), stampEl: $('#wstamp'), link: $('#wlink') });
+    b.remove(); $('.room > .btn[data-act="stop"]')?.classList.replace('ghost', 'brass');
+  },
+};
+function startExit(to, fresh) {
+  S.exit = { to, readyAt: Date.now() + 7 * 864e5 - 19000, when: exitWhen() };
+  if (fresh) addBook({ st: 'EXIT STARTED', ink: 'red', p: `Emergency exit to ${short(to)} · opens ${new Date(S.exit.readyAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` });
+  hideSheet(); go('box');
+  if (fresh) { emergencyBell(0); if (!reduce) $('#rtag')?.animate([{ transform: 'rotate(-35deg)', opacity: 0 }, { transform: 'rotate(6deg)', opacity: 1, offset: 0.5 }, { transform: 'rotate(-2deg)', offset: 0.8 }, { transform: 'rotate(0)' }], { duration: 1400, easing: ease('--ease-settle') }); }
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', (e) => {
+  unlockAudio(); // first gesture unlocks Web Audio (sound-motion policy)
+  const a = e.target.closest('[data-act]');
+  if (!a || a.disabled) return;
+  if (a.tagName === 'A' && a.getAttribute('href') === '#') e.preventDefault();
+  A[a.dataset.act]?.(a, e);
+});
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (el.id === 'amt') { S.dep.amt = el.value.trim(); const er = depErr(S.dep.amt); $('#amtErr').textContent = S.dep.amt === '' ? '' : er; $('#depNext').disabled = !!er; }
+  if (el.id === 'mamt' || el.id === 'wl' || el.id === 'ws' || el.id === 'wto') {
+    if (el.id === 'mamt') S.mv.amt = el.value.trim(); else if (el.id === 'wto') S.w.toAddr = el.value.trim(); else S.w[el.id === 'wl' ? 'l' : 's'] = el.value.trim();
+    const pos = el.selectionStart, id = el.id; renderSheet(); const n = $('#' + id); n.focus(); n.setSelectionRange(pos, pos);
+  }
+});
+document.addEventListener('change', (e) => {
+  const el = e.target;
+  if (el.dataset.chk) { S.open[el.dataset.chk] = el.checked; if (el.dataset.chk === 'remember') S.remembered = el.checked; go('open'); $(`[data-chk="${el.dataset.chk}"]`)?.focus(); }
+  if (el.name === 'dir') { S.mv.dir = el.value; S.mv.amt = ''; renderSheet(); }
+  if (el.name === 'wto') { S.w.to = el.value; renderSheet(); }
+  if (el.id === 'wchk') { S.w.checkedAddr = el.checked; renderSheet(); }
+  if (el.name === 'xto') { S.ex.to = el.value; renderSheet(); }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === '?' && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); toggleJumper(); }
+  if (e.key === 'Escape') { if (!$('#jumper').hidden) toggleJumper(false); else if (S.sheet && !S.doorBusy) closeSheet(); }
+  if (e.key === 'Enter' && e.target.matches?.('#amt') && !$('#depNext').disabled) A.depNext();
+});
+$('#scrim').addEventListener('click', () => closeSheet());
+
+/* ---------- screen jumper (press ? or the small button) ---------- */
+const userBox = (l, s) => { S.wallet = { addr: USER, bal: 60 }; S.box = { addr: USER, locker: l, savings: s, earned: s ? 0.000412 : 0 }; S.visited = true;
+  S.book = []; addBook({ d: '25 SEP', st: 'OPENED', ink: 'green', p: 'Box opened · card A1B2-C3D4', bal: 0 });
+  if (l + s) addBook({ st: 'DEPOSITED', ink: 'green', p: 'Deposit from ' + short(USER), inn: l + s, bal: l + s });
+  if (s) addBook({ st: 'SAVED', ink: 'brass', p: `Locker → Savings · ${fmt(s)}`, bal: l + s }); };
+const reset = () => { hideSheet(); const snd = soundOn; S = fresh(); void snd; };
+const J = [
+  ['Landing', [
+    ['First visit, no wallet', () => { reset(); go('landing'); }],
+    ['Wallet detected', () => { reset(); S.walletDetected = true; go('landing'); }],
+    ['Returning, has a box', () => { reset(); userBox(20, 30); go('landing'); }],
+    ['Door ceremony (plays)', () => { reset(); go('landing'); openDoor(() => go('tour', 'slide')); }],
+    ['Read the plaque', () => { reset(); go('landing'); openSheet('plaque'); }],
+  ]],
+  ['Tour (See a real box)', [
+    ['① Box', () => { reset(); S.visited = true; S.tour = { stop: 1 }; go('tour'); }],
+    ['② Two keys + practice', () => { reset(); S.tour = { stop: 2 }; go('tour'); }],
+    ['② Practice run (GENUINE)', () => { reset(); S.tour = { stop: 2 }; go('tour'); A.practiceRun(); }],
+    ['③ Passbook', () => { reset(); S.tour = { stop: 3 }; go('tour'); }],
+    ['④ Lost card', () => { reset(); S.tour = { stop: 4 }; go('tour'); }],
+    ['End card', () => { reset(); S.tour = { stop: 5 }; go('tour'); }],
+  ]],
+  ['Open a box + key card', [
+    ['Step 2: cut the card', () => { reset(); S.wallet = { addr: USER, bal: 60 }; S.open = { step: 2 }; go('open', 'push'); }],
+    ['Step 3: card on the table', () => { reset(); S.wallet = { addr: USER, bal: 60 }; S.open = { step: 3 }; go('open'); }],
+    ['Step 4: open (card checked)', () => { reset(); S.wallet = { addr: USER, bal: 60 }; S.open = { step: 4, saved: true, checked: true, confirmed: true }; go('open'); }],
+    ['Opened (OPENED stamp)', () => { reset(); userBox(0, 0); S.open = { step: 5 }; go('open'); }],
+  ]],
+  ['Box view', [
+    ['Empty', () => { reset(); userBox(0, 0); go('box'); }],
+    ['Locker only', () => { reset(); userBox(25, 0); go('box'); }],
+    ['Locker + Savings', () => { reset(); userBox(20, 30); go('box'); }],
+    ['Passbook (sheet)', () => { reset(); userBox(20, 30); go('box'); openSheet('passbook'); }],
+  ]],
+  ['Deposit → choose', [
+    ['Deposit slip', () => { reset(); userBox(0, 0); go('box'); A.deposit(); }],
+    ['Step 1 of 2 (permission)', () => { reset(); userBox(0, 0); go('box'); S.dep = { step: 's1', amt: '25' }; openSheet('deposit'); }],
+    ['Deposited → Locker or Savings?', () => { reset(); userBox(25, 0); go('box'); S.dep = { step: 'choose', amt: '25' }; openSheet('deposit'); }],
+    ['Moved to Savings (SAVED)', () => { reset(); userBox(0, 25); go('box'); S.dep = { step: 'chosen', amt: '25', chosen: 'savings' }; openSheet('deposit'); }],
+    ['Move sheet', () => { reset(); userBox(20, 30); go('box'); A.move(); }],
+  ]],
+  ['Withdraw (two keys)', [
+    ['Slip', () => { reset(); userBox(20, 30); go('box'); A.withdraw(); }],
+    ['Keys: Key 2 empty', () => { reset(); userBox(20, 30); go('box'); S.w = { phase: 'keys', l: '5', s: '', to: 'self' }; openSheet('withdraw'); }],
+    ['Signing (phone speed, chronometer)', () => { reset(); userBox(20, 30); S.slowSign = true; go('box'); S.w = { phase: 'keys', l: '5', s: '', to: 'self' }; openSheet('withdraw'); loadCard('ok'); }],
+    ['Wrong card', () => { reset(); userBox(20, 30); go('box'); S.w = { phase: 'keys', l: '5', s: '', to: 'self' }; openSheet('withdraw'); loadCard('wrong'); }],
+    ['Signed: ready to turn', () => { reset(); userBox(20, 30); go('box'); S.w = { phase: 'keys', l: '5', s: '', to: 'self', card: 'ok', sig: true, sigSecs: '0.86' }; openSheet('withdraw'); }],
+    ['Wallet rejected', () => { reset(); userBox(20, 30); go('box'); S.w = { phase: 'keys', l: '5', s: '', to: 'self', card: 'ok', sig: true, sigSecs: '0.86', err: t('err.rejected') + ' Both keys stay in the locks.' }; openSheet('withdraw'); }],
+    ['Success (WITHDRAWN)', () => { reset(); userBox(15, 30); addBook({ st: 'WITHDRAWN', ink: 'ink', k2: true, p: 'Paid to ' + short(USER), out: 5, bal: 45, tx: hash(77) }); go('box'); S.w = { phase: 'receipt', l: '5', s: '', to: 'self', card: 'ok', sig: true, tx: hash(77), instant: true }; openSheet('withdraw'); }],
+  ]],
+  ['Emergency exit', [
+    ['Start exit (sheet)', () => { reset(); userBox(20, 30); go('box'); A.exitStart(); }],
+    ['Pending: to own wallet', () => { reset(); userBox(20, 30); startExit(USER); }],
+    ['Pending: to another address', () => { reset(); userBox(20, 30); startExit(OTHER); }],
+    ['Pending: landing', () => { reset(); userBox(20, 30); startExit(OTHER); go('landing'); }],
+    ['Cancel with key card', () => { reset(); userBox(20, 30); startExit(OTHER); A.cancelExit(); }],
+    ['Cancelled', () => { reset(); userBox(20, 30); go('box'); S.ex = { done: true, wasOther: true }; openSheet('cancel'); }],
+  ]],
+  ['Errors', [
+    ['No wallet (connect)', () => { reset(); go('landing'); openSheet('connect'); }],
+    ['Wrong network', () => { reset(); userBox(20, 30); S.wrongNet = true; go('box'); }],
+    ['Arc unreachable (stale)', () => { reset(); userBox(20, 30); S.rpcDown = true; go('box'); }],
+    ['No USDC on Arc', () => { reset(); S.wallet = { addr: USER, bal: 0 }; S.open = { step: 2, noUsdc: true }; go('open'); }],
+    ['Amount over wallet', () => { reset(); userBox(0, 0); go('box'); S.dep = { step: 'slip', amt: '50' }; openSheet('deposit'); }],
+  ]],
+];
+$('#jumper').innerHTML = `<b style="color:#E2C07A">Screen jumper</b> <span style="color:#8a949a">(press ? to toggle)</span>` + J.map(([g, items], gi) => `<h4>${g}</h4>` + items.map(([l], ii) => `<button data-j="${gi}.${ii}">${l}</button>`).join('')).join('');
+$('#jumper').addEventListener('click', (e) => { const b = e.target.closest('[data-j]'); if (!b) return; const [g, i] = b.dataset.j.split('.').map(Number); toggleJumper(false); J[g][1][i][1](); });
+function toggleJumper(on) { const j = $('#jumper'); j.hidden = on === undefined ? !j.hidden : !on; }
+$('#jbtn').addEventListener('click', () => toggleJumper());
+window.PQ = { J, S: () => S, jump: (g, i) => J[g][1][i][1]() }; // for automated checks
+
+render();
+
+</script>
+</body>
+</html>
