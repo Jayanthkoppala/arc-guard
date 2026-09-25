@@ -15,7 +15,7 @@ The form is "Create a new BUIDL and submit". It has five steps: **Profile → De
 | Other ecosystems (optional) | Circle · Morpho · MetaMask |
 | GitHub * | https://github.com/Jayanthkoppala/arc-guard |
 | Project website | https://arc-guard-eosin.vercel.app |
-| Demo video | https://arc-guard-eosin.vercel.app/demo.mp4 (70 s, voiceover). A YouTube link would embed; upload it to your channel if you want the embed. |
+| Demo video | https://youtu.be/NwpK5EPPd_Y |
 | Social links * (up to 3) | https://x.com/JayBosshq · https://github.com/Jayanthkoppala · https://www.linkedin.com/in/jayanth-koppala-71a8091b9 |
 
 ## 2. Details (markdown)
@@ -48,7 +48,7 @@ If someone steals your wallet key, or a quantum computer one day breaks it, they
 - All boxes and totals: https://arc-guard-eosin.vercel.app/hall
 - Contract (verified): https://explorer.arc.io/address/0x98022839c9D934ac17D3dED0327B7ae97Ebee48e
 - A real two-key withdrawal (see the `PQVerified` event): https://explorer.arc.io/tx/0xb542a6d3cacb37d58a95a29c77c6381ec686a6ba05093490681f5c7f20c04f66?tab=logs
-- Demo video: https://arc-guard-eosin.vercel.app/demo.mp4
+- Demo video: https://youtu.be/NwpK5EPPd_Y
 
 ### How it's built
 - **Contract:**
