@@ -11,7 +11,19 @@ If a quantum computer, or a thief, ever gets your wallet key, they still can't m
 - **Savings:** your USDC earns interest in the Galaxy USDC vault on Morpho, a lending protocol. Lending carries some extra risk.
 - **Lost key card?** Your wallet alone can start a **7-day emergency exit**, and your key card can cancel it at any time before it pays out.
 
-> Status: live on Arc mainnet — addresses and transaction links below.
+## Live on Arc mainnet
+- **App:** https://arc-guard-eosin.vercel.app
+- **Real demo box (view only):** https://arc-guard-eosin.vercel.app/box?owner=0xaFaA7E1C9AA4AD77091DE776cF7E078EBb866bB9
+- **Contract (verified):** [`0x98022839c9D934ac17D3dED0327B7ae97Ebee48e`](https://explorer.arc.io/address/0x98022839c9D934ac17D3dED0327B7ae97Ebee48e)
+
+| Step | Transaction | Gas |
+|---|---|---|
+| Open box | [0xac1f…3268](https://explorer.arc.io/tx/0xac1f2c34fafbe986755191ba28eacffdc9e49370d0c80d88dca670e498803268) | 45,494 |
+| Deposit 0.20 USDC | [0x475f…c974](https://explorer.arc.io/tx/0x475f18cb961af1fbbd4a100c6a99a84963b7a8d4ccd074077acb2ec88f70c974) | 76,674 |
+| Move 0.10 to Savings (Galaxy USDC vault) | [0x795a…61ce](https://explorer.arc.io/tx/0x795adcc6898e14277536d4b1e895de0a28ad0d4d6f0565af54e9642afa4061ce) | 309,769 |
+| **Two-key withdrawal** (wallet + SLH-DSA key card, verified by the Arc precompile) | [0x03ad…135b](https://explorer.arc.io/tx/0x03ad2f9d33af0b4f57b7172ead2f7b8e96e18b64eccc0df784a48d4ee249135b?tab=logs) | 451,246 |
+
+The key card signed in 892 ms, producing a 7,856-byte signature. The two-key withdrawal cost 451,246 gas, about 0.009 USDC at 20 gwei.
 
 ## What it uses Arc for
 | Arc feature | How Arc Guard uses it |
