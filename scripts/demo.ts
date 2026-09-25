@@ -39,12 +39,12 @@ const box = (await pub.readContract({ address: guard, abi, functionName: "boxes"
 if (box[0] === "0x" + "0".repeat(64)) await send("open", guard, abi, "open", [pqKey]);
 else if (box[0] !== pqKey) throw new Error("box exists with a different key");
 
-await send("approve", USDC, usdcAbi, "approve", [guard, 3_000000n]);
-await send("deposit 3", guard, abi, "deposit", [3_000000n]);
-await send("moveToSavings 2", guard, abi, "moveToSavings", [2_000000n]);
+await send("approve", USDC, usdcAbi, "approve", [guard, 200000n]);
+await send("deposit 0.20", guard, abi, "deposit", [200000n]);
+await send("moveToSavings 0.10", guard, abi, "moveToSavings", [100000n]);
 
-// Two-key withdrawal: 0.50 USDC from the Locker back to the owner.
-const amount = 500000n;
+// Two-key withdrawal: 0.05 USDC from the Locker back to the owner.
+const amount = 50000n;
 const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
 const action = keccak256(encodeAbiParameters([{ type: "string" }, { type: "address" }, { type: "uint256" }, { type: "uint256" }], ["withdraw", account.address, amount, 0n]));
 const digest = (await pub.readContract({ address: guard, abi, functionName: "digest", args: [account.address, action, deadline] })) as Hex;
