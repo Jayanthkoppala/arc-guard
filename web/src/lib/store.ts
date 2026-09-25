@@ -528,6 +528,14 @@ export const ACT = {
     catch (e) { S.errText = why(e).kind === "rejected" ? ERR.wrongNetwork : ERR.addNetworkFailed; }
     render();
   },
+  /** User-chosen disconnect: forget the wallet here and in MetaMask, so a reload doesn't reconnect. Money doesn't move. */
+  async disconnect() {
+    cancelFlows();
+    localStorage.setItem("ag:disconnected", "1");
+    try { await eth()?.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] }); } catch { /* older wallets: the local flag still holds */ }
+    Object.assign(S, { account: null, walletBal: null, sheet: null, err: null, errText: "", open: null, connecting: false });
+    ACT.home();
+  },
   async reconnect() {
     try { onAccounts(await accounts(true)); } catch { /* the banner stays */ }
   },
@@ -540,6 +548,7 @@ export const ACT = {
       S.connecting = true; S.landErr = null; S.sock.wheel = "hold"; render(); // the wheel turns 30° and holds: waiting, not opening
       const fail = (msg: string) => { S.connecting = false; S.sock.wheel = ""; S.landErr = msg; SFX.errorBuzz(); };
       let acc: Address[];
+      localStorage.removeItem("ag:disconnected");
       try { acc = await c.step(accounts(true)); } catch (e) { rethrow(e); return fail(txErr(e).msg); }
       if (!acc[0]) return fail(ERR.rejected);
       S.account = acc[0];
@@ -962,6 +971,7 @@ export const ACT = {
 
 /* ===== wallet events, routes, start-up ===== */
 function onAccounts(list: readonly string[]) {
+  if (localStorage.getItem("ag:disconnected")) return;
   const next = list[0] ? getAddress(list[0]) : null;
   if (next === S.account) return;
   cancelFlows();
@@ -1011,7 +1021,7 @@ export async function init() {
   const guardP = GUARD ? checkGuard(GUARD).then((r) => { S.guard = r; }, () => { S.guard = "rpc"; }) : Promise.resolve();
   if (e) {
     try {
-      const a = await accounts(false);
+      const a = localStorage.getItem("ag:disconnected") ? [] : await accounts(false);
       if (a[0]) { S.account = a[0]; S.chainId = await chainIdOf(); if (S.chainId !== 5042) { S.err = "network"; S.errText = ERR.wrongNetwork; } }
     } catch { /* the wallet stays locked until asked */ }
     e.on("accountsChanged", (a) => onAccounts(a));

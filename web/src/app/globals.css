@@ -459,3 +459,5 @@ body.sheet-open .panel { display: none; }
 a.brand { color: var(--ink); text-decoration: none; }
 a.btn { text-decoration: none; }
 a.btn[aria-disabled="true"] { pointer-events: none; opacity: .5; }
+.wallet-group { display: inline-flex; gap: 8px; align-items: center; }
+@media (max-width: 520px) { .chip--wallet { display: none; } }
