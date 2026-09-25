@@ -122,6 +122,9 @@ button { font: inherit; color: inherit; }
   box-shadow: var(--shadow-pressed); font: 700 14px/1 var(--font-body); white-space: nowrap; }
 .chip--button { background: var(--white); color: var(--ink); box-shadow: var(--shadow-button); cursor: pointer; transition: transform 200ms var(--ease-soft); }
 .chip--button:active { transform: scale(.92); box-shadow: var(--shadow-pressed); }
+.chip--connect { background: var(--grad-primary); color: var(--white); font-weight: 800; }
+.chip--connect:hover { transform: translateY(-2px); box-shadow: var(--shadow-button-hover); }
+.chip--connect:disabled { opacity: .7; cursor: wait; }
 .banner { position: sticky; top: 8px; z-index: 35; max-width: 1240px; margin: 0 auto; border-radius: var(--r-mid); background: var(--white); box-shadow: var(--shadow-card); }
 .banner--alert { background: var(--grad-primary); color: var(--white); font-weight: 700; box-shadow: var(--shadow-button); }
 .banner-in { padding: 12px 20px; display: flex; align-items: center; gap: 14px; }

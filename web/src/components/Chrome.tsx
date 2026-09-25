@@ -12,7 +12,9 @@ export function Header() {
     <div className="brand"><span className="brand-name">Arc Guard</span><span className="brand-sub">SAFE DEPOSIT</span></div>
     <div className="topbar-right">
       {hasBox(b) && (viewing || S.view === "box") && <span className="chip chip--box">{viewing ? `No. ${b.no} · view only` : `Box No. ${b.no}`}</span>}
-      {S.account && <span className="chip chip--wallet mono">{short(S.account)}{S.chainId === 5042 ? "" : " · wrong network"}</span>}
+      {S.account
+        ? <span className="chip chip--wallet mono">{short(S.account)}{S.chainId === 5042 ? "" : " · wrong network"}</span>
+        : <button type="button" className="chip chip--button chip--connect" disabled={S.connecting} onClick={ACT.connect}>{S.connecting ? "Check wallet…" : "Connect wallet"}</button>}
       <button type="button" className="chip chip--button" aria-pressed={SFX.on} onClick={ACT.sound}>Sound {SFX.on ? "on" : "off"}</button>
     </div>
   </header>;
