@@ -37,16 +37,27 @@ export default function Hall() {
           <div className="card stat"><span className="label">Boxes</span><b className="stat-num">{hall ? hall.boxes.length : found || "…"}</b><span className="small">opened</span></div>
         </div>
 
+        <h2 className="hall-sub">Boxes <span>{hall ? hall.boxes.length : "…"}</span></h2>
         <div className="hall-grid">
-          {hall?.boxes.map((b) => (
-            <a key={b.owner} className="card hall-box" href={`/box?owner=${b.owner}`}>
-              <span className="hall-no">No. {boxNoOf(b.owner)}</span>
-              <b className="hall-amt">{f2(b.locker + b.savings)} <small>USDC</small></b>
-              <span className="small">Locker {f2(b.locker)} · Savings {f2(b.savings)}</span>
-              <span className="small mono">{short(b.owner)}</span>
-              {b.exitPending && <span className="hall-flag">EXIT PENDING</span>}
-            </a>
-          ))}
+          {hall?.boxes.map((b) => {
+            const sum = b.locker + b.savings, lockPct = sum ? Number((b.locker * 1000n) / sum) / 10 : 0;
+            return <a key={b.owner} className="hall-box" href={`/box?owner=${b.owner}`}>
+              <div className="hall-box-top">
+                <span className="hall-plate">No. {boxNoOf(b.owner)}</span>
+                <span className="hall-holes" aria-hidden="true"><i /><i /></span>
+              </div>
+              <div className="hall-box-body">
+                <b className="hall-amt">{f2(sum)} <small>USDC</small></b>
+                <div className="hall-split" aria-hidden="true"><span style={{ width: `${lockPct}%` }} /></div>
+                <div className="hall-legend">
+                  <span><i className="dot dot--lock" />Locker <b>{f2(b.locker)}</b></span>
+                  <span><i className="dot dot--save" />Savings <b>{f2(b.savings)}</b></span>
+                </div>
+                <div className="hall-foot"><span className="mono">{short(b.owner)}</span><span className="hall-view">View →</span></div>
+                {b.exitPending && <span className="hall-flag">EXIT PENDING</span>}
+              </div>
+            </a>;
+          })}
         </div>
         {hall && <p className="small">Live from Arc · block {hall.head.toLocaleString()} · <a className="link" href={addrUrl(GUARD)} target="_blank" rel="noreferrer">contract</a></p>}
       </>}
