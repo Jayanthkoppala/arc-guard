@@ -98,3 +98,25 @@ This step hasn't shown yet. The form won't go past **Contact** until Telegram is
   - public profile ✅
   - not funded by Circle ✅
 - **Voice credit:** the voiceover uses ElevenLabs on the free tier, which requires attribution. Add "Voice: ElevenLabs" to the video description.
+
+## Filled in the browser, 25 Sep (not submitted)
+- **Contact:**
+  - Telegram fakename137
+  - Discord jayanth011103
+  - WhatsApp +918555019769
+- **Submission:**
+  - Track: All BUIDLs
+  - Teammates: No
+  - Project name: Arc Guard
+  - Name: Jayanth Koppala (solo builder)
+  - Email: jayanth.sms.in@gmail.com
+  - Builder profiles: GitHub, X
+  - Live deployment: app, /hall, YouTube
+  - Contract and tx: 0x9802…48e, withdraw tx 0xb542…4f66
+  - Repo
+  - Two-sentence summary
+  - What it uses Arc for
+  - Deployed to Arc before? No
+  - Circle/Arc grant received? No
+  - Anything else: withdrawal link, tests, no admin, limits, next step
+- **Left for Jay:** tick "I agree to the Terms of Use Agreement and Participant Agreement", then **Submit for Review**.
