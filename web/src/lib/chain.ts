@@ -85,6 +85,7 @@ export const usdcAbi = parseAbi([
 const vaultAbi = parseAbi([
   "function convertToAssets(uint256 shares) view returns (uint256)",
   "function convertToShares(uint256 assets) view returns (uint256)",
+  "function balanceOf(address) view returns (uint256)",
 ]);
 const mc3Abi = parseAbi([
   "function getBlockNumber() view returns (uint256)",
@@ -235,6 +236,42 @@ export async function readLogs(guard: Address, owner: Address, head: bigint, onL
 }
 
 export const decodeLog = (l: RpcLog) => decodeEventLog({ abi: guardAbi, data: l.data, topics: l.topics });
+
+/* ---------- the hall: every box, plus what the contract holds in total ---------- */
+export type HallBox = { owner: Address; locker: bigint; savings: bigint; exitPending: boolean };
+export type Hall = { boxes: HallBox[]; lockerTotal: bigint; savingsTotal: bigint; head: bigint };
+
+/** Every Opened event since deploy (cached cursor), then one multicall for all boxes and the contract's balances. */
+export async function readHall(guard: Address, onProgress?: (scanned: number) => void): Promise<Hall> {
+  const head = await pub.getBlockNumber();
+  const key = `ag:hall:${guard}`;
+  let c: { to: string; owners: Address[] };
+  try { c = JSON.parse(localStorage.getItem(key) || "null") ?? { to: "", owners: [] }; } catch { c = { to: "", owners: [] }; }
+  let from = c.to ? BigInt(c.to) + 1n : await deployBlock(guard, head);
+  const owners = new Set(c.owners);
+  for (; from <= head; from += CHUNK) {
+    const to = from + CHUNK - 1n < head ? from + CHUNK - 1n : head;
+    const logs = await pub.request({ method: "eth_getLogs", params: [{ address: guard, topics: [OPENED_TOPIC], fromBlock: toHex(from), toBlock: toHex(to) }] });
+    for (const l of logs) if (l.topics[1]) owners.add(getAddress(`0x${l.topics[1].slice(26)}`));
+    c = { to: String(to), owners: [...owners] };
+    localStorage.setItem(key, JSON.stringify(c));
+    onProgress?.(owners.size);
+  }
+  const list = [...owners];
+  const [lockerTotal, vaultShares] = await pub.multicall({
+    allowFailure: false,
+    contracts: [
+      { address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [guard] },
+      { address: VAULT, abi: vaultAbi, functionName: "balanceOf", args: [guard] },
+    ],
+  });
+  const savingsTotal = vaultShares ? await pub.readContract({ address: VAULT, abi: vaultAbi, functionName: "convertToAssets", args: [vaultShares] }) : 0n;
+  const rows = await pub.multicall({ allowFailure: false, contracts: list.map((o) => ({ address: guard, abi: guardAbi, functionName: "boxes", args: [o] }) as const) });
+  const saved = await pub.multicall({ allowFailure: false, contracts: list.map((o) => ({ address: guard, abi: guardAbi, functionName: "savingsValue", args: [o] }) as const) });
+  const boxes = list.map((owner, i) => ({ owner, locker: rows[i][4], savings: saved[i], exitPending: rows[i][2] > 0n }))
+    .sort((x, y) => (y.locker + y.savings > x.locker + x.savings ? 1 : -1));
+  return { boxes, lockerTotal, savingsTotal, head };
+}
 
 /* ---------- wallet ---------- */
 export const eth = (): EIP1193Provider | undefined => window.ethereum;

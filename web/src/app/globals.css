@@ -437,3 +437,25 @@ body.sheet-open .panel { display: none; }
   .pb-in, .pb-out { grid-area: io; }
   .footer { padding: 20px 16px 128px; }
 }
+
+/* ---------- the hall ---------- */
+.hall-wrap { max-width: 1240px; margin: 0 auto; padding: 8px 28px 64px; display: grid; gap: 28px; }
+.hall-title { font: 900 clamp(40px, 7vw, 72px)/1.05 var(--font-display); letter-spacing: -0.02em; color: var(--ink); }
+.hall-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.stat { gap: 4px; padding: 24px; }
+.stat-num { font: 900 clamp(28px, 4vw, 44px)/1 var(--font-display); color: var(--ink); }
+.hall-stats .stat:first-child { background: var(--grad-primary); color: var(--white); box-shadow: var(--shadow-button); }
+.hall-stats .stat:first-child .stat-num, .hall-stats .stat:first-child .label, .hall-stats .stat:first-child .small { color: var(--white); }
+.hall-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+.hall-box { gap: 6px; color: var(--ink); text-decoration: none; transition: transform 500ms var(--ease-soft), box-shadow 500ms var(--ease-soft); }
+.hall-box:hover { transform: translateY(-8px); box-shadow: var(--shadow-card-hover); }
+.hall-no { font: 800 14px/1 var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.hall-amt { font: 900 32px/1.1 var(--font-display); }
+.hall-amt small { font-size: 14px; font-weight: 800; }
+.hall-flag { justify-self: start; padding: 6px 12px; border-radius: 999px; background: var(--blue); color: var(--white); font: 800 12px/1 var(--font-display); letter-spacing: .08em; }
+@media (max-width: 760px) { .hall-stats { grid-template-columns: repeat(2, 1fr); } .hall-wrap { padding: 8px 20px 48px; } }
+@media (prefers-reduced-motion: reduce) { .hall-box, .hall-box:hover { transition: none; transform: none; } }
+.label { font: 700 12px/1.2 var(--font-body); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+a.brand { color: var(--ink); text-decoration: none; }
+a.btn { text-decoration: none; }
+a.btn[aria-disabled="true"] { pointer-events: none; opacity: .5; }
